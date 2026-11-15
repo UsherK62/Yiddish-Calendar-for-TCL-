@@ -1,5 +1,6 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatTextView
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.KeyEvent
@@ -18,7 +19,7 @@ class AboutActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_day)
         setHeader("About")
-        setSoftKeys("", "", getString(R.string.sk_back))
+        setSoftKeys("Keys", "", getString(R.string.sk_back))
         scroll = findViewById(R.id.scroll)
         scroll.isFocusable = true
         val content = findViewById<LinearLayout>(R.id.content)
@@ -27,7 +28,7 @@ class AboutActivity : BaseActivity() {
         val p = palette
         val card = sectionCard(this).also { it.setPadding(dp(12f), dp(10f), dp(12f), dp(12f)) }
         content.addView(card)
-        card.addView(TextView(this).apply {
+        card.addView(AppCompatTextView(this).apply {
             text = getString(R.string.app_name) + if (version.isEmpty()) "" else "  $version"
             textSize = 16f
             setTextColor(p.text)
@@ -35,7 +36,7 @@ class AboutActivity : BaseActivity() {
             setPadding(0, 0, 0, dp(8f))
             applyBidi()
         })
-        fun para(t: String, color: Int = p.text, size: Float = 13f) = card.addView(TextView(this).apply {
+        fun para(t: String, color: Int = p.text, size: Float = 13f) = card.addView(AppCompatTextView(this).apply {
             text = tr(t); textSize = size; setTextColor(color)
             includeFontPadding = false
             setLineSpacing(dp(2f).toFloat(), 1f)
@@ -56,11 +57,11 @@ class AboutActivity : BaseActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 layoutDirection = if (prefs.rtlGrid) android.view.View.LAYOUT_DIRECTION_RTL else android.view.View.LAYOUT_DIRECTION_LTR
                 setPadding(0, dp(2f), 0, dp(2f))
-                addView(TextView(this@AboutActivity).apply {
+                addView(AppCompatTextView(this@AboutActivity).apply {
                     text = tr(action); textSize = 13f; setTextColor(p.text); maxLines = 1; applyBidi()
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 })
-                addView(TextView(this@AboutActivity).apply {
+                addView(AppCompatTextView(this@AboutActivity).apply {
                     text = key; textSize = 13f; setTextColor(p.text); setTypeface(typeface, Typeface.BOLD); maxLines = 1
                     textDirection = android.view.View.TEXT_DIRECTION_LTR
                     layoutParams = LinearLayout.LayoutParams(dp(34f), LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -68,6 +69,11 @@ class AboutActivity : BaseActivity() {
                 })
             })
         }
+        para("Add event", p.sub, 11f)
+        para("Right soft key, or Menu, then Add event.")
+        para("Language · שפראך", p.sub, 11f)
+        para("Settings, top row. In Settings, press 0 for English.")
+        para("Key test: press the left soft key (Keys) here.")
         para("Credits", p.sub, 11f)
         para("KosherJava (LGPL)")
         para("Calendar by kizitonwose (MIT)")
@@ -85,4 +91,7 @@ class AboutActivity : BaseActivity() {
         }
         return super.dispatchKeyEvent(event)
     }
+
+    /** Left soft key: key test, so testers can report what their phone's keys send. */
+    override fun onLeftSoft() = startActivity(android.content.Intent(this, KeyTestActivity::class.java))
 }

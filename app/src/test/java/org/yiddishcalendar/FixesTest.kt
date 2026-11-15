@@ -35,7 +35,8 @@ class FixesTest {
         Robolectric.buildActivity(MainActivity::class.java,
             Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TEST_DATE, date.toEpochDay())).setup().get()
     private fun key(a: MainActivity, code: Int) {
-        a.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code)); a.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
+        val t = android.os.SystemClock.uptimeMillis()
+        a.dispatchKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0)); a.dispatchKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0))
         shadowOf(Looper.getMainLooper()).idle()
     }
     private fun text(a: android.app.Activity, id: Int) = a.findViewById<TextView>(id).text.toString()

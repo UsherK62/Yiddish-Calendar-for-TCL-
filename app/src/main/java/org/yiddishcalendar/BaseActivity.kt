@@ -30,11 +30,19 @@ class Palette(private val c: Context) {
 }
 
 object SoftKeys {
-    /** Left soft key. Many keypad ROMs send MENU instead of SOFT_LEFT; treat both the same. */
-    fun isLeft(code: Int) = code == KeyEvent.KEYCODE_SOFT_LEFT || code == KeyEvent.KEYCODE_MENU
-    fun isRight(code: Int) = code == KeyEvent.KEYCODE_SOFT_RIGHT
+    /**
+     * Left soft key. Keypad Android phones differ: SOFT_LEFT (TCL), MENU (many ROMs), F1 (some Kyocera/LG
+     * builds). All are treated the same.
+     */
+    fun isLeft(code: Int) = code == KeyEvent.KEYCODE_SOFT_LEFT || code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_F1
+
+    /** Right soft key: SOFT_RIGHT (TCL, Sonim XP3), F2 (some Kyocera/LG builds). BACK is handled separately. */
+    fun isRight(code: Int) = code == KeyEvent.KEYCODE_SOFT_RIGHT || code == KeyEvent.KEYCODE_F2
+
     fun isCenter(code: Int) = code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER ||
         code == KeyEvent.KEYCODE_NUMPAD_ENTER
+
+    fun isSoft(code: Int) = isLeft(code) || isRight(code) || code == KeyEvent.KEYCODE_BACK
 }
 
 /**
@@ -52,6 +60,7 @@ abstract class BaseActivity : AppCompatActivity() {
         prefs = Prefs(this)
         UiDir.rtl = prefs.rtlGrid
         setTheme(if (prefs.theme == 1) R.style.Theme_YC_Light else R.style.Theme_YC_Dark)
+        if (android.os.Build.VERSION.SDK_INT < 26) theme.applyStyle(R.style.YC_SystemFont, true)
         themeRev = prefs.theme
         super.onCreate(savedInstanceState)
         palette = Palette(this)
@@ -100,23 +109,45 @@ abstract class BaseActivity : AppCompatActivity() {
     /** Hardware Back. Default is to leave the screen; MainActivity overrides this so Back is not Add. */
     open fun onBackKey() { finish() }
 
+    /**
+     * Soft keys fire ONCE per press, on whichever event arrives first:
+     *  - normally on key DOWN (repeat 0); the matching UP is then swallowed;
+     *  - on key UP when the phone never delivered the DOWN to the app (0.2.2 bug: some phones, e.g. the
+     *    tester's Sonim, let the system take the DOWN, and 0.2.2 only acted on an UP whose DOWN it had
+     *    seen, so "Add" did nothing). An UP whose press STARTED before this screen appeared (event.downTime)
+     *    is ignored: that is the tail of the key press that opened this screen.
+     * Long presses (repeats) are swallowed so holding a key doesn't open a screen many times.
+     */
     private val softDowns = mutableSetOf<Int>()
+    private var resumedAt = 0L
+
+    override fun onPostResume() {
+        super.onPostResume()
+        resumedAt = android.os.SystemClock.uptimeMillis()
+    }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
-        if (SoftKeys.isLeft(code) || SoftKeys.isRight(code) || code == KeyEvent.KEYCODE_BACK) {
-            if (event.action == KeyEvent.ACTION_DOWN) softDowns += code
-            if (event.action == KeyEvent.ACTION_UP && softDowns.remove(code)) {
-                when {
-                    SoftKeys.isLeft(code) -> onLeftSoft()
-                    SoftKeys.isRight(code) -> onRightSoft()
-                    else -> onBackKey()
-                }
-            }
-            return true // consume DOWN and UP so nothing else (e.g. AppCompat's MENU handling) reacts
+        if (!SoftKeys.isSoft(code)) return super.dispatchKeyEvent(event)
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0 && softDowns.add(code)) fireSoft(code)
+            KeyEvent.ACTION_UP -> if (!softDowns.remove(code) && startedHere(event) && !event.isCanceled) fireSoft(code)
         }
-        return super.dispatchKeyEvent(event)
+        return true // consume DOWN and UP so nothing else (e.g. AppCompat's MENU handling) reacts
     }
+
+    /** True when the key press began while this screen was already showing. */
+    // downTime <= 0: some phones synthesise a lone UP with no down time; it can't be a leftover press.
+    fun startedHere(event: KeyEvent) = resumedAt > 0 && (event.downTime <= 0 || event.downTime > resumedAt)
+
+    private fun fireSoft(code: Int) = when {
+        SoftKeys.isLeft(code) -> onLeftSoft()
+        SoftKeys.isRight(code) -> onRightSoft()
+        else -> onBackKey()
+    }
+
+    /** "Settings", plus the English word in Yiddish mode so it can always be found (language escape). */
+    fun settingsLabel(): String = if (prefs.hebrewText >= 2) "הגדרות · Settings" else getString(R.string.settings)
 
     /** About is its own one-screen page (Menu → About and Settings → About). */
     fun about() {

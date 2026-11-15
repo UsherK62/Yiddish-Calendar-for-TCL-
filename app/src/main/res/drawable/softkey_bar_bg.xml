@@ -3,7 +3,10 @@
     <item>
         <color android:color="?attr/ycBar" />
     </item>
-    <item android:gravity="top" android:height="1dp">
-        <color android:color="?attr/ycLine" />
+    <!-- top hairline; negative insets hide the other 3 stroke sides (API 21 safe) -->
+    <item android:left="-2dp" android:right="-2dp" android:bottom="-2dp">
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="?attr/ycLine" />
+        </shape>
     </item>
 </layer-list>

@@ -1,5 +1,6 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatTextView
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
@@ -47,7 +48,7 @@ class ChoiceRow(
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        titleView = TextView(act).apply {
+        titleView = AppCompatTextView(act).apply {
             text = act.tr(title)
             textSize = 10f
             setTypeface(typeface, Typeface.BOLD)
@@ -55,7 +56,7 @@ class ChoiceRow(
             maxLines = 1
             applyBidi()
         }
-        valueView = TextView(act).apply {
+        valueView = AppCompatTextView(act).apply {
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             maxLines = 1
@@ -63,7 +64,7 @@ class ChoiceRow(
             applyBidi()
         }
         col.addView(titleView); col.addView(valueView)
-        arrows = TextView(act).apply { text = "‹ ›"; textSize = 16f; visibility = View.INVISIBLE; textDirection = View.TEXT_DIRECTION_LTR }
+        arrows = AppCompatTextView(act).apply { text = "‹ ›"; textSize = 16f; visibility = View.INVISIBLE; textDirection = View.TEXT_DIRECTION_LTR }
         view.addView(col); view.addView(arrows)
         view.setOnFocusChangeListener { _, has ->
             arrows.visibility = if (has) View.VISIBLE else View.INVISIBLE
@@ -138,7 +139,7 @@ class SettingRow(
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        titleView = TextView(act).apply {
+        titleView = AppCompatTextView(act).apply {
             text = act.tr(title)
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
@@ -147,7 +148,7 @@ class SettingRow(
             includeFontPadding = false
             applyBidi()
         }
-        subView = TextView(act).apply {
+        subView = AppCompatTextView(act).apply {
             textSize = 11.5f
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
@@ -224,14 +225,12 @@ class SettingRow(
             shape = GradientDrawable.OVAL
             setColor(if (on) p.headerText else p.dim)
         }
+        // Fixed 34x20dp switch, knob 14dp. Only setLayerInset (API 1) so it works on Android 5+.
         return android.graphics.drawable.LayerDrawable(arrayOf(track, knob)).apply {
-            val k = act.dp(14f); val inset = act.dp(3f)
-            setLayerSize(1, k, k)
+            val m = act.dp(3f); val far = act.dp(34f - 3f - 14f)
             // Standard switch: ON = knob at the row's end side (right in a left-to-right row), OFF = toward the words.
-            val end = if (rowRtl) Gravity.LEFT else Gravity.RIGHT
-            val start = if (rowRtl) Gravity.RIGHT else Gravity.LEFT
-            setLayerGravity(1, (if (on) end else start) or Gravity.CENTER_VERTICAL)
-            setLayerInset(1, inset, 0, inset, 0)
+            val knobRight = on != rowRtl
+            if (knobRight) setLayerInset(1, far, m, m, m) else setLayerInset(1, m, m, far, m)
         }
     }
 }
@@ -247,7 +246,7 @@ fun startsRtl(s: CharSequence): Boolean {
 
 /** Section header: small caps text on the reading side, lined up with the row titles. No icon. */
 fun sectionHeader(act: BaseActivity, text: String, first: Boolean = false): View =
-    TextView(act).apply {
+    AppCompatTextView(act).apply {
         isFocusable = false
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         this.text = act.tr(text)

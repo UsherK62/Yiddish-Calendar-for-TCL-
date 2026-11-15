@@ -8,10 +8,11 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "com.yiddishcalendar.app"
-        minSdk = 26
+        minSdk = 21 // LG Exalt LTE (VN220) runs Android 6.0.1 = API 23; 21 leaves margin. java.time via desugaring.
         targetSdk = 30 // Android 11 phone; old-style runtime permissions
-        versionCode = 7
-        versionName = "0.2.2"
+        vectorDrawables.useSupportLibrary = true
+        versionCode = 8
+        versionName = "0.2.3"
     }
     buildTypes {
         release {
@@ -25,6 +26,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time (LocalDate etc.) is only built into Android 8.0+; desugaring adds it for older phones.
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures { buildConfig = true }
     testOptions {
@@ -40,6 +43,7 @@ android {
 kotlin { jvmToolchain(17) }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core:1.6.1")

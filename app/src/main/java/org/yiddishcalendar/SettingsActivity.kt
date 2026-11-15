@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 
 /**
  * Settings, in three rounded section cards that match the calendar tiles.
@@ -26,7 +27,7 @@ class SettingsActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list)
-        setHeader(getString(R.string.settings))
+        setHeader(settingsLabel())
         setSoftKeys("", getString(R.string.sk_select), getString(R.string.sk_back))
         findViewById<TextView>(R.id.hint).visibility = View.GONE
         scroll = findViewById(R.id.scroll)
@@ -36,7 +37,9 @@ class SettingsActivity : BaseActivity() {
         rows.setPadding(0, dp(2f), 0, dp(10f))
 
         section(rows, "Display", first = true) { card ->
-            choice(card, "Hebrew text", HEBREW_LEVELS_SHORT, { prefs.hebrewText }, HEBREW_LEVEL_NOTES) { prefs.hebrewText = it; relabel() }
+            // Language escape: this row is always the first row and its label/values are ALWAYS in both
+            // English and Yiddish, so someone who switched to Yiddish by mistake can find the way back.
+            choice(card, LANGUAGE_LABEL, LANGUAGE_LEVELS, { prefs.hebrewText }, HEBREW_LEVEL_NOTES) { prefs.hebrewText = it; relabel() }
             toggle(card, "Dark theme", { prefs.theme == 0 }) { prefs.theme = if (prefs.theme == 0) 1 else 0; relabel() }
             toggle(card, "Right-to-left", { prefs.rtlGrid }) { prefs.rtlGrid = !prefs.rtlGrid; relabel() }
         }
@@ -108,7 +111,7 @@ class SettingsActivity : BaseActivity() {
     /** Pick list of writable phone calendars, plus Automatic and This phone only. */
     private fun pickTarget() {
         if (!events.hasCalendarPermission()) {
-            requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), REQ_CAL)
+            androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), REQ_CAL)
             return
         }
         calendars = events.writableCalendars()
@@ -130,6 +133,15 @@ class SettingsActivity : BaseActivity() {
             return true
         }
         if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) return true
+        // Escape hatch: 0 in Settings switches the language back to English.
+        if (code == KeyEvent.KEYCODE_0) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && prefs.hebrewText != 0) {
+                prefs.hebrewText = 0
+                Toast.makeText(this, "Language: English · שפראך: ענגליש", Toast.LENGTH_SHORT).show()
+                relabel()
+            }
+            return true
+        }
         return super.dispatchKeyEvent(event)
     }
 
@@ -143,7 +155,8 @@ class SettingsActivity : BaseActivity() {
     companion object {
         private const val REQ_CAL = 12
         private const val KEY_FOCUS = "focus"
-        val HEBREW_LEVELS_SHORT = listOf("Less", "More", "Everything")
+        const val LANGUAGE_LABEL = "Language · שפראך"
+        val LANGUAGE_LEVELS = listOf("English · ענגליש", "English + Hebrew names · מער עברית", "Yiddish · אידיש")
         val HEBREW_LEVEL_NOTES = listOf("Shabbos names + date", "+ holiday names", "all text")
     }
 }

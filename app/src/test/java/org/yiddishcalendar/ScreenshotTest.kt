@@ -98,4 +98,11 @@ class ScreenshotTest {
     @Test fun monthLtrLight() { assumeTrue(out != null); setPrefs(rtl = false); main("check_main_ltr", LocalDate.of(2027, 1, 21)) }
     @Test fun dayEverything() { assumeTrue(out != null); setPrefs(text = 2); day("check_day_everything", LocalDate.of(2027, 1, 23)) }
     @Test fun monthHebrewLight() { assumeTrue(out != null); setPrefs(); main("main_hebrew_light", LocalDate.of(2027, 1, 21)) }
+    @Test fun settingsEverything() { assumeTrue(out != null); setPrefs(text = 2); shoot(start(SettingsActivity::class.java).window.decorView.rootView, "settings_top_everything") }
+    @Test fun aboutBottomLight() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(AboutActivity::class.java)
+        (a.findViewById<android.view.View>(R.id.scroll) as? android.widget.ScrollView)?.scrollTo(0, 10_000)
+        shoot(a.window.decorView.rootView, "about_bottom_light")
+    }
 }

@@ -43,8 +43,9 @@ class EventRepository(private val context: Context, private val prefs: Prefs) {
     private val db by lazy { LocalDb(context) }
 
     fun hasCalendarPermission(): Boolean =
-        context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
-            context.checkSelfPermission(Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        // ContextCompat: on Android 5.x (no runtime permissions) install-time grants count as granted.
+        androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
     data class Cal(val id: Long, val name: String, val account: String)
 

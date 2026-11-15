@@ -123,4 +123,12 @@
         <item name="android:clickable">true</item>
         <item name="android:gravity">center_vertical</item>
     </style>
+
+    <!-- API < 26 (LG Exalt = Android 6): use the system font (Android 5/6 ship Noto Sans Hebrew) instead of
+         the bundled XML font family, which goes through AppCompat's reflection-based font loader there.
+         The calendar grid still tries the bundled font itself (DayCellView, with a fallback). -->
+    <style name="YC.SystemFont">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+    </style>
 </resources>

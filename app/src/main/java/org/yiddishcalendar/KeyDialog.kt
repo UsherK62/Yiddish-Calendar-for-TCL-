@@ -1,5 +1,7 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatEditText
+import androidx.appcompat.widget.AppCompatTextView
 import android.app.Dialog
 import android.os.Bundle
 import android.text.InputType
@@ -56,6 +58,7 @@ class KeyDialog(private val act: BaseActivity) :
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT < 26) context.theme.applyStyle(R.style.YC_SystemFont, true)
         setContentView(R.layout.key_dialog)
         window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
@@ -68,7 +71,7 @@ class KeyDialog(private val act: BaseActivity) :
         val p = act.palette
         findViewById<TextView>(R.id.dlgTitle).apply { text = title; visibility = if (title.isEmpty()) View.GONE else View.VISIBLE; applyBidi() }
         val body = findViewById<LinearLayout>(R.id.dlgBody)
-        for (t in paras) body.addView(TextView(act).apply {
+        for (t in paras) body.addView(AppCompatTextView(act).apply {
             text = t; textSize = 12.5f; setTextColor(p.text)
             includeFontPadding = false; setLineSpacing(0f, 1.0f)
             setPadding(act.dp(6f), act.dp(2f), act.dp(6f), act.dp(3f))
@@ -79,12 +82,12 @@ class KeyDialog(private val act: BaseActivity) :
             body.addView(LinearLayout(act).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(act.dp(6f), act.dp(3f), act.dp(6f), act.dp(3f))
-                addView(TextView(act).apply {
+                addView(AppCompatTextView(act).apply {
                     text = label; textSize = if (value.isEmpty()) 14f else 13f; setTextColor(if (value.isEmpty()) p.text else p.sub)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                     applyBidi()
                 })
-                if (value.isNotEmpty()) addView(TextView(act).apply {
+                if (value.isNotEmpty()) addView(AppCompatTextView(act).apply {
                     text = value; textSize = 14f; setTextColor(p.text)
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -102,23 +105,23 @@ class KeyDialog(private val act: BaseActivity) :
                 minimumHeight = act.dp(36f)
                 setPadding(act.dp(10f), act.dp(4f), act.dp(10f), act.dp(4f))
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = act.dp(2f) }
-                if (checked >= 0) addView(TextView(act).apply {
+                if (checked >= 0) addView(AppCompatTextView(act).apply {
                     text = if (i == checked) "●" else "○"; textSize = 16f; setTextColor(if (i == checked) p.text else p.sub)
                     setPaddingRelative(0, 0, act.dp(8f), 0)
                 })
                 addView(LinearLayout(act).apply {
                     orientation = LinearLayout.VERTICAL
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                    addView(TextView(act).apply {
+                    addView(AppCompatTextView(act).apply {
                         text = label; textSize = 15f; setTextColor(p.text); setTypeface(typeface, android.graphics.Typeface.BOLD)
                         applyBidi()
                     })
                     itemNotes.getOrNull(i)?.takeIf { it.isNotEmpty() }?.let { n ->
-                        addView(TextView(act).apply { text = n; textSize = 11f; setTextColor(p.sub); applyBidi() })
+                        addView(AppCompatTextView(act).apply { text = n; textSize = 11f; setTextColor(p.sub); applyBidi() })
                     }
                 })
                 // Item number in its own small column with a gap, so it never touches a left-aligned English label.
-                if (i < 9 && checked < 0) addView(TextView(act).apply {
+                if (i < 9 && checked < 0) addView(AppCompatTextView(act).apply {
                     text = (i + 1).toString(); textSize = 12f; setTextColor(p.sub); gravity = Gravity.CENTER
                     layoutParams = LinearLayout.LayoutParams(act.dp(16f), ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = act.dp(8f) }
                 })
@@ -127,7 +130,7 @@ class KeyDialog(private val act: BaseActivity) :
         }
 
         if (onInput != null) {
-            input = EditText(act).apply {
+            input = AppCompatEditText(act).apply {
                 hint = inputHint; textSize = 18f; setTextColor(p.text); setHintTextColor(p.dim)
                 inputType = if (decimal) InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or
                     InputType.TYPE_NUMBER_FLAG_SIGNED else InputType.TYPE_CLASS_NUMBER
@@ -138,7 +141,7 @@ class KeyDialog(private val act: BaseActivity) :
             }
             body.addView(input)
             preview?.let { f ->
-                val pv = TextView(act).apply {
+                val pv = AppCompatTextView(act).apply {
                     textSize = 14f; setTextColor(p.text); setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setPadding(act.dp(10f), act.dp(4f), act.dp(10f), 0)
                     text = f(inputInitial)
@@ -164,13 +167,18 @@ class KeyDialog(private val act: BaseActivity) :
         (input ?: body.getChildAt(paras.size + lines.size + checked.coerceAtLeast(0)))?.requestFocus()
     }
 
+    private var shownAt = 0L
+    override fun onStart() { super.onStart(); shownAt = android.os.SystemClock.uptimeMillis() }
+
     /** Keys whose DOWN reached this dialog. An UP without its DOWN (e.g. the OK press that opened the dialog) is ignored. */
     private val downs = mutableSetOf<Int>()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) downs += code
-        val up = event.action == KeyEvent.ACTION_UP && downs.remove(code)
+        // Act on UP. Accept an UP without its DOWN only if the press began after the dialog appeared
+        // (phones that hide soft-key DOWNs); the UP of the press that OPENED the dialog is ignored.
+        val up = event.action == KeyEvent.ACTION_UP && (downs.remove(code) || (shownAt > 0 && (event.downTime <= 0 || event.downTime > shownAt)))
         val inp = input
         // Long text (no list, no input box): D-pad up/down scrolls the body; the scrollbar stays visible.
         if (items.isEmpty() && inp == null &&

@@ -1,5 +1,6 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatTextView
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
@@ -71,7 +72,7 @@ class DayActivity : BaseActivity() {
             setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
             layoutParams = lp(top = 6f, side = 10f)
             luach.dayTitleParts(date).forEachIndexed { i, part ->
-                addView(TextView(this@DayActivity).apply {
+                addView(AppCompatTextView(this@DayActivity).apply {
                     text = part
                     textSize = if (i == 0) 16f else 14f
                     setTextColor(if (i == 0) p.text else p.sub)
@@ -89,7 +90,7 @@ class DayActivity : BaseActivity() {
         eventIndex = 0
         val list = runCatching { events.eventsOn(date) }.getOrDefault(emptyList())
         if (list.isEmpty()) {
-            content.addView(TextView(this).apply {
+            content.addView(AppCompatTextView(this).apply {
                 text = tr("No events.") + "\n" + tr("Press Menu, then Add event."); textSize = 13f; setTextColor(p.sub)
                 setPadding(dp(14f), dp(8f), dp(14f), dp(8f))
                 isFocusable = false
@@ -128,12 +129,12 @@ class DayActivity : BaseActivity() {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .also { it.setMargins(dp(10f), dp(3f), dp(10f), 0) }
             // Title at start (right in RTL), time at end (left in RTL).
-            titleView = TextView(this@DayActivity).apply {
+            titleView = AppCompatTextView(this@DayActivity).apply {
                 text = e.title; textSize = 15f; setTypeface(typeface, Typeface.BOLD)
                 maxLines = 2; setTextColor(palette.text); applyBidi()
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
-            timeView = TextView(this@DayActivity).apply {
+            timeView = AppCompatTextView(this@DayActivity).apply {
                 text = timeText(e); textSize = 12f; setTextColor(palette.sub); applyBidiEnd()
                 layoutParams = LinearLayout.LayoutParams(dp(72f), ViewGroup.LayoutParams.WRAP_CONTENT)
             }
@@ -175,7 +176,7 @@ class DayActivity : BaseActivity() {
     override fun onLeftSoft() {
         KeyDialog(this)
             .item("Add event") { addEvent() }
-            .item(getString(R.string.settings)) { startActivity(Intent(this, SettingsActivity::class.java)) }
+            .item(settingsLabel()) { startActivity(Intent(this, SettingsActivity::class.java)) }
             .show()
     }
 
@@ -212,7 +213,8 @@ class DayActivity : BaseActivity() {
     private fun lp(top: Float = 0f, side: Float = 10f) = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         .also { it.setMargins(dp(side), dp(top), dp(side), 0) }
 
-    private fun label(t: String) = TextView(this, null, 0, R.style.YC_Label).apply {
+    private fun label(t: String) = AppCompatTextView(this).apply {
+        androidx.core.widget.TextViewCompat.setTextAppearance(this, R.style.YC_Label)
         text = t; setPadding(dp(14f), dp(12f), dp(14f), dp(2f))
         isFocusable = false
         applyBidi()
@@ -224,11 +226,11 @@ class DayActivity : BaseActivity() {
             gravity = Gravity.CENTER_VERTICAL
             isFocusable = false
             setPadding(dp(14f), dp(3f), dp(14f), dp(3f))
-            addView(TextView(this@DayActivity).apply {
+            addView(AppCompatTextView(this@DayActivity).apply {
                 text = a; textSize = size; setTextColor(ca); applyBidi()
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             })
-            addView(TextView(this@DayActivity).apply {
+            addView(AppCompatTextView(this@DayActivity).apply {
                 text = b; textSize = size; setTextColor(cb); if (boldValue) setTypeface(typeface, Typeface.BOLD)
                 applyBidiEnd()
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -236,7 +238,7 @@ class DayActivity : BaseActivity() {
         }
 
     /** One line, e.g. "Daf Yomi: Temurah 34"; aligned by its own language like all text. */
-    private fun factRow(label: String, value: String) = TextView(this).apply {
+    private fun factRow(label: String, value: String) = AppCompatTextView(this).apply {
         text = "$label: $value"; textSize = 13f; setTextColor(palette.text)
         isFocusable = false
         setPadding(dp(14f), dp(4f), dp(14f), dp(3f))

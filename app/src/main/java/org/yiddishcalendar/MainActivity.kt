@@ -1,5 +1,6 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatTextView
 import android.Manifest
 import android.content.Intent
 import android.graphics.Typeface
@@ -129,7 +130,7 @@ class MainActivity : BaseActivity() {
         val row = findViewById<LinearLayout>(R.id.weekdays)
         row.removeAllViews()
         luach.weekdayLabels().forEachIndexed { i, label ->
-            row.addView(TextView(this).apply {
+            row.addView(AppCompatTextView(this).apply {
                 text = label
                 gravity = Gravity.CENTER
                 textDirection = View.TEXT_DIRECTION_FIRST_STRONG
@@ -239,7 +240,7 @@ class MainActivity : BaseActivity() {
             .item("Today") { moveTo(today) }
             .item("Go to date") { goToDate() }
             .item("Add event") { onRightSoft() }
-            .item(getString(R.string.settings)) { startActivity(Intent(this, SettingsActivity::class.java)) }
+            .item(settingsLabel()) { startActivity(Intent(this, SettingsActivity::class.java)) }
             .item("About") { about() }
             .show()
     }
@@ -273,7 +274,7 @@ class MainActivity : BaseActivity() {
     private fun askPermissionsOnce() {
         if (prefs.askedPermissions || events.hasCalendarPermission()) return
         prefs.askedPermissions = true
-        requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), 1)
+        androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR), 1)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

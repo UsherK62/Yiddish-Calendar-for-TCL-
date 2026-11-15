@@ -1,5 +1,7 @@
 package org.yiddishcalendar
 
+import androidx.appcompat.widget.AppCompatEditText
+import androidx.appcompat.widget.AppCompatTextView
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
@@ -53,11 +55,11 @@ class EditEventActivity : BaseActivity() {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .also { it.setMargins(dp(4f), dp(3f), dp(4f), 0) }
         }
-        val titleLabel = TextView(this).apply {
+        val titleLabel = AppCompatTextView(this).apply {
             text = tr("Title"); textSize = 10f; setTypeface(typeface, android.graphics.Typeface.BOLD)
             isAllCaps = true; setTextColor(palette.sub); applyBidi()
         }
-        title = EditText(this).apply {
+        title = AppCompatEditText(this).apply {
             hint = tr("Type a title")
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
