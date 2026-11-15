@@ -6,33 +6,6 @@ It shows Hebrew dates (letters, not numbers), month names, and Shabbos parsha na
 
 This is version 0.2.1 (package `com.yiddishcalendar.app`). It is meant for Android 8 and up, and it targets Android 11, which is what that phone runs.
 
-## Build
-
-You need JDK 17 and the Android SDK. Create a `local.properties` file (gitignored) with your Android SDK path:
-
-```
-sdk.dir=/path/to/android-sdk
-```
-
-Then:
-
-```
-./gradlew assembleDebug
-```
-
-The debug APK is written under `app/build/outputs/apk/debug/`.
-
-`./gradlew assembleRelease` makes a release APK. If you do not set up your own signing key, that release build is signed with the debug key. To sign a release yourself, add a gitignored `keystore.properties` in the project root:
-
-```
-storeFile=/path/to/your.jks
-storePassword=...
-keyAlias=...
-keyPassword=...
-```
-
-Or set the environment variables `YIDDISH_CALENDAR_STORE_FILE`, `YIDDISH_CALENDAR_STORE_PASSWORD`, `YIDDISH_CALENDAR_KEY_ALIAS`, and `YIDDISH_CALENDAR_KEY_PASSWORD`. Keep your key and passwords private.
-
 ## Credits
 
 - [kizitonwose/Calendar](https://github.com/kizitonwose/Calendar) (MIT), vendored with a small fork in `Calendar/`
