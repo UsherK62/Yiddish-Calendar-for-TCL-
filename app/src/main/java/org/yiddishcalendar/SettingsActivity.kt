@@ -35,22 +35,22 @@ class SettingsActivity : BaseActivity() {
         val rows = findViewById<LinearLayout>(R.id.rows)
         rows.setPadding(0, dp(2f), 0, dp(10f))
 
-        section(rows, "Display", R.drawable.ic_section_display, first = true) { card ->
+        section(rows, "Display", first = true) { card ->
             choice(card, "Hebrew text", HEBREW_LEVELS_SHORT, { prefs.hebrewText }, HEBREW_LEVEL_NOTES) { prefs.hebrewText = it; relabel() }
             toggle(card, "Dark theme", { prefs.theme == 0 }) { prefs.theme = if (prefs.theme == 0) 1 else 0; relabel() }
             toggle(card, "Right-to-left", { prefs.rtlGrid }) { prefs.rtlGrid = !prefs.rtlGrid; relabel() }
         }
 
-        section(rows, "Calendar", R.drawable.ic_section_calendar) { card ->
+        section(rows, "Calendar") { card ->
             toggle(card, "In Israel", { prefs.inIsrael }) { prefs.inIsrael = !prefs.inIsrael }
             toggle(
-                card, "Date changes at night", { prefs.nightfall },
-                note = "Night date: Brooklyn; Jerusalem if In Israel. Not your location.",
+                card, "Date at nightfall", { prefs.nightfall },
+                note = "Brooklyn or Jerusalem",
             ) { prefs.nightfall = !prefs.nightfall }
             toggle(card, "Show parsha", { prefs.showParsha }) { prefs.showParsha = !prefs.showParsha }
         }
 
-        section(rows, "Other", R.drawable.ic_section_other) { card ->
+        section(rows, "Other") { card ->
             add(card, SettingRow(this, "Save events to", SettingRow.Kind.CHOICE, { events.targetLabel() }, onOk = { pickTarget() }))
             add(card, SettingRow(this, "About", SettingRow.Kind.ACTION, { "" }, onOk = { about() }))
         }
@@ -64,8 +64,8 @@ class SettingsActivity : BaseActivity() {
         outState.putInt(KEY_FOCUS, focusIndex)
     }
 
-    private fun section(parent: LinearLayout, title: String, icon: Int, first: Boolean = false, fill: (LinearLayout) -> Unit) {
-        parent.addView(sectionHeader(this, title, icon, first))
+    private fun section(parent: LinearLayout, title: String, first: Boolean = false, fill: (LinearLayout) -> Unit) {
+        parent.addView(sectionHeader(this, title, first))
         val card = sectionCard(this)
         fill(card)
         parent.addView(card)

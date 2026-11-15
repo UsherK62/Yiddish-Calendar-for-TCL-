@@ -100,8 +100,10 @@ fun <T> List<T>.after(cur: T, step: Int): T {
 }
 
 /**
- * One Settings row inside a section card: title (and optional note) at the start,
- * value or an ON/OFF switch at the end. Only OK/center acts. No Left/Right cycling.
+ * One Settings row inside a section card. Reading side (right in RTL): the title, and under it the
+ * current value or a short note, so every row fits a 240dp screen without wrapping. Far side (left
+ * in RTL): an ON/OFF switch for two-choice settings, or a chevron for pick lists / pages.
+ * Only OK/center acts. No Left/Right cycling.
  */
 class SettingRow(
     private val act: BaseActivity,
@@ -115,19 +117,20 @@ class SettingRow(
     enum class Kind { TOGGLE, CHOICE, ACTION }
     var onFocus: ((Boolean) -> Unit)? = null
     private val titleView: TextView
-    private val noteView: TextView?
-    private val valueView: TextView
+    private val subView: TextView
+    private val note = act.tr(note)
+    private val switchView: View
+    private var rowRtl = UiDir.rtl
     private val chevronView: ImageView
     val view: LinearLayout = LinearLayout(act).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = act.dp(42f)
+        minimumHeight = act.dp(40f)
         isFocusable = true
         isClickable = true
         setBackgroundResource(R.drawable.row_bg)
-        setPadding(act.dp(10f), act.dp(7f), act.dp(10f), act.dp(7f))
+        setPadding(act.dp(10f), act.dp(5f), act.dp(10f), act.dp(5f))
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            .also { it.setMargins(act.dp(3f), act.dp(3f), act.dp(3f), 0) }
     }
 
     init {
@@ -137,42 +140,40 @@ class SettingRow(
         }
         titleView = TextView(act).apply {
             text = act.tr(title)
-            textSize = 15f
+            textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+            applyBidi()
+        }
+        subView = TextView(act).apply {
+            textSize = 11.5f
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+            setPadding(0, act.dp(2f), 0, 0)
             applyBidi()
         }
         col.addView(titleView)
-        noteView = if (note.isNotEmpty()) TextView(act).apply {
-            text = act.tr(note)
-            textSize = 11f
-            maxLines = 3
-            setPadding(0, act.dp(2f), 0, 0)
-            applyBidi()
-            col.addView(this)
-        } else null
-        valueView = TextView(act).apply {
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            if (kind == Kind.TOGGLE) {
-                textSize = 12f
-                setTypeface(typeface, Typeface.BOLD)
-                gravity = Gravity.CENTER
-                minWidth = act.dp(46f)
-                setPadding(act.dp(9f), act.dp(4f), act.dp(9f), act.dp(4f))
-            } else {
-                textSize = 13f
-                applyBidi()
-            }
+        col.addView(subView)
+        switchView = View(act).apply {
+            layoutParams = LinearLayout.LayoutParams(act.dp(34f), act.dp(20f)).also { it.marginStart = act.dp(10f) }
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
         chevronView = ImageView(act).apply {
             setImageResource(R.drawable.ic_chevron)
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            layoutParams = LinearLayout.LayoutParams(act.dp(14f), act.dp(14f)).also { it.marginStart = act.dp(4f) }
+            layoutParams = LinearLayout.LayoutParams(act.dp(16f), act.dp(16f)).also { it.marginStart = act.dp(8f) }
         }
+        // The switch / chevron comes AFTER the words. English label -> row runs left-to-right, label on
+        // the left and switch at the right end; Hebrew/Yiddish label (Everything mode) -> mirrored.
+        // Pick-list/page rows do the same: the chevron comes after the words, pointing ">" for English
+        // (ic_chevron is auto-mirrored, so it points "<" at the left end of a Yiddish row).
+        rowRtl = startsRtl(titleView.text)
+        view.layoutDirection = if (rowRtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         view.addView(col)
-        view.addView(valueView)
+        view.addView(switchView)
         view.addView(chevronView)
         view.setOnFocusChangeListener { _, has ->
             paint()
@@ -194,64 +195,76 @@ class SettingRow(
     private fun paint() {
         val p = act.palette
         titleView.setTextColor(p.text)
-        noteView?.setTextColor(p.sub)
-        when (kind) {
-            Kind.TOGGLE -> {
-                val on = isOn()
-                chevronView.visibility = View.GONE
-                valueView.visibility = View.VISIBLE
-                valueView.text = act.tr(if (on) "ON" else "OFF")
-                valueView.setTextColor(if (on) p.headerText else p.sub)
-                valueView.background = GradientDrawable().apply {
-                    cornerRadius = act.dp(11f).toFloat()
-                    if (on) setColor(p.header) else { setColor(0); setStroke(act.dp(1.5f), p.sub) }
-                }
-            }
-            Kind.CHOICE -> {
-                chevronView.visibility = View.VISIBLE
-                chevronView.setColorFilter(p.sub)
-                valueView.visibility = View.VISIBLE
-                valueView.text = act.tr(value())
-                valueView.setTextColor(p.sub)
-            }
-            Kind.ACTION -> {
-                chevronView.visibility = View.VISIBLE
-                chevronView.setColorFilter(p.sub)
-                valueView.visibility = View.GONE
-            }
+        subView.setTextColor(p.sub)
+        val sub = when (kind) {
+            Kind.TOGGLE -> note
+            Kind.CHOICE -> act.tr(value())
+            Kind.ACTION -> note
+        }
+        subView.text = sub
+        subView.visibility = if (sub.isEmpty()) View.GONE else View.VISIBLE
+        chevronView.visibility = if (kind == Kind.TOGGLE) View.GONE else View.VISIBLE
+        chevronView.setColorFilter(p.sub)
+        switchView.visibility = if (kind == Kind.TOGGLE) View.VISIBLE else View.GONE
+        if (kind == Kind.TOGGLE) {
+            val on = isOn()
+            switchView.background = switchDrawable(on)
+            switchView.contentDescription = act.tr(if (on) "ON" else "OFF")
+        }
+    }
+
+    /** Small switch: blue track with the knob toward the text when ON, gray outlined track when OFF. */
+    private fun switchDrawable(on: Boolean): android.graphics.drawable.Drawable {
+        val p = act.palette
+        val track = GradientDrawable().apply {
+            cornerRadius = act.dp(10f).toFloat()
+            if (on) setColor(p.header) else { setColor(p.cell); setStroke(act.dp(1.5f), p.dim) }
+        }
+        val knob = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(if (on) p.headerText else p.dim)
+        }
+        return android.graphics.drawable.LayerDrawable(arrayOf(track, knob)).apply {
+            val k = act.dp(14f); val inset = act.dp(3f)
+            setLayerSize(1, k, k)
+            // Standard switch: ON = knob at the row's end side (right in a left-to-right row), OFF = toward the words.
+            val end = if (rowRtl) Gravity.LEFT else Gravity.RIGHT
+            val start = if (rowRtl) Gravity.RIGHT else Gravity.LEFT
+            setLayerGravity(1, (if (on) end else start) or Gravity.CENTER_VERTICAL)
+            setLayerInset(1, inset, 0, inset, 0)
         }
     }
 }
 
-/** Section header with a small icon; never focusable. */
-fun sectionHeader(act: BaseActivity, text: String, icon: Int, first: Boolean = false): View =
-    LinearLayout(act).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
+/** True when the first strong letter is Hebrew/Yiddish (same rule as textDirection=firstStrong). */
+fun startsRtl(s: CharSequence): Boolean {
+    for (c in s) {
+        if (c in '\u0590'..'\u05FF') return true
+        if (Character.isLetter(c)) return false
+    }
+    return false
+}
+
+/** Section header: small caps text on the reading side, lined up with the row titles. No icon. */
+fun sectionHeader(act: BaseActivity, text: String, first: Boolean = false): View =
+    TextView(act).apply {
         isFocusable = false
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        setPadding(act.dp(14f), act.dp(if (first) 8f else 12f), act.dp(14f), act.dp(5f))
-        addView(ImageView(act).apply {
-            setImageResource(icon)
-            setColorFilter(act.palette.dim)
-            layoutParams = LinearLayout.LayoutParams(act.dp(16f), act.dp(16f)).also { it.marginEnd = act.dp(6f) }
-        })
-        addView(TextView(act).apply {
-            this.text = act.tr(text)
-            textSize = 11f
-            setTextColor(act.palette.dim)
-            setTypeface(typeface, Typeface.BOLD)
-            isAllCaps = true
-            applyBidi()
-        })
+        this.text = act.tr(text)
+        textSize = 11f
+        setTextColor(act.palette.sub)
+        setTypeface(typeface, Typeface.BOLD)
+        isAllCaps = true
+        setPadding(act.dp(18f), act.dp(if (first) 6f else 10f), act.dp(18f), act.dp(4f))
+        applyBidi()
     }
 
-/** Rounded group card that holds a section's rows. */
+/** Group card that holds a section's rows: one hairline outline; the rows inside have none. */
 fun sectionCard(act: BaseActivity): LinearLayout = LinearLayout(act).apply {
     orientation = LinearLayout.VERTICAL
     isFocusable = false
     setBackgroundResource(R.drawable.card_bg)
-    setPadding(act.dp(4f), act.dp(3f), act.dp(4f), act.dp(6f))
+    setPadding(act.dp(3f), act.dp(3f), act.dp(3f), act.dp(3f))
     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        .also { it.setMargins(act.dp(10f), 0, act.dp(10f), 0) }
+        .also { it.setMargins(act.dp(8f), 0, act.dp(8f), 0) }
 }

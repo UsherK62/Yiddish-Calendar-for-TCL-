@@ -54,6 +54,47 @@ class Luach(private val context: Context, private val prefs: Prefs) {
         return null
     }
 
+    /**
+     * Always-visible short Hebrew label for the month grid (fits a ~30dp cell): Yom Tov, Chol Hamoed,
+     * fasts, Chanukah, Purim, Rosh Chodesh. Like ר״ח, these short markers are Hebrew letters in every
+     * Hebrew-text level; the full name (in the chosen level) is in the footer and on the day screen.
+     * Parsha names are NOT put in cells (they stay in the footer), so cells don't get crowded.
+     */
+    fun cellLabel(date: LocalDate): String? = shortLabel(jc(date))
+
+    private fun shortLabel(j: JewishCalendar): String? {
+        val label = when (j.yomTovIndex) {
+            JewishCalendar.EREV_PESACH -> "ע״פ"
+            JewishCalendar.PESACH -> "פסח"
+            JewishCalendar.CHOL_HAMOED_PESACH -> "חוה״מ"
+            JewishCalendar.PESACH_SHENI -> "פ״ש"
+            JewishCalendar.SHAVUOS -> "שבועות"
+            JewishCalendar.SEVENTEEN_OF_TAMMUZ -> "צום"
+            JewishCalendar.TISHA_BEAV -> "ט׳ באב"
+            JewishCalendar.TU_BEAV -> "ט״ו באב"
+            JewishCalendar.EREV_ROSH_HASHANA -> "ער״ה"
+            JewishCalendar.ROSH_HASHANA -> "ר״ה"
+            JewishCalendar.FAST_OF_GEDALYAH -> "צום"
+            JewishCalendar.EREV_YOM_KIPPUR -> "עיו״כ"
+            JewishCalendar.YOM_KIPPUR -> "יו״כ"
+            JewishCalendar.SUCCOS -> "סוכות"
+            JewishCalendar.CHOL_HAMOED_SUCCOS -> "חוה״מ"
+            JewishCalendar.HOSHANA_RABBA -> "הו״ר"
+            JewishCalendar.SHEMINI_ATZERES -> "שמ״ע"
+            JewishCalendar.SIMCHAS_TORAH -> "שמח״ת"
+            JewishCalendar.CHANUKAH -> "חנוכה"
+            JewishCalendar.TENTH_OF_TEVES -> "צום"
+            JewishCalendar.TU_BESHVAT -> "ט״ו בש׳"
+            JewishCalendar.FAST_OF_ESTHER -> "תענית"
+            JewishCalendar.PURIM -> "פורים"
+            JewishCalendar.SHUSHAN_PURIM -> "שושן"
+            JewishCalendar.PURIM_KATAN -> "פ״ק"
+            JewishCalendar.LAG_BAOMER -> "ל״ג"
+            else -> null
+        }
+        return label ?: if (j.isRoshChodesh) "ר״ח" else null
+    }
+
     fun isSpecialDay(date: LocalDate): Boolean { val j = jc(date); return j.isYomTov || j.isRoshChodesh }
 
     /** Header title for a page: Hebrew mode "חשון תשפ״ז" (always Hebrew letters); Gregorian mode "October 2026". */
@@ -94,8 +135,11 @@ class Luach(private val context: Context, private val prefs: Prefs) {
         else listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "שבת")[i]
     }
 
-    /** Main line: שבת פרשת, a holiday, ר״ח, ערב שבת, or the weekday. */
-    fun dayTitle(date: LocalDate): String {
+    /** Main line: שבת פרשת, a holiday, ר״ח, ערב שבת, or the weekday. Items joined in reading order. */
+    fun dayTitle(date: LocalDate): String = join(dayTitleParts(date))
+
+    /** The separate items of [dayTitle] (the day screen shows one per line). */
+    fun dayTitleParts(date: LocalDate): List<String> {
         val j = jc(date)
         val parts = mutableListOf<String>()
         if (j.parshah != JewishCalendar.Parshah.NONE && prefs.showParsha) {
@@ -110,23 +154,41 @@ class Luach(private val context: Context, private val prefs: Prefs) {
         if (parts.isEmpty()) {
             parts += if (j.dayOfWeek == 6 && !j.isErevYomTov) "ערב שבת" else weekdayName(date)
         }
-        return parts.distinct().joinToString(sep)
+        return parts.distinct()
     }
 
-    /** Second line: "Sat Oct 31 · כ׳ חשון תשפ״ז". */
+    /** Second line: "כ׳ חשון תשפ״ז · Sat Oct 31" (Hebrew on the reading side). */
     fun daySubtitle(date: LocalDate): String = mixed(fullHebrewDate(date), gregShort(date))
 
     /**
-     * Joins a Hebrew and an English part so the line reads naturally: English first in Less/More
-     * (paragraph stays left-to-right), Hebrew first in Everything (paragraph becomes right-to-left).
+     * Joins a Hebrew and an English part. Hebrew first in right-to-left mode or Everything (the line then
+     * reads right-to-left from the right edge); English first in left-to-right mode.
      */
-    fun mixed(hebrew: String, english: String): String = if (all) "$hebrew $sep $english" else "$english $sep $hebrew"
+    fun mixed(hebrew: String, english: String): String =
+        if (prefs.rtlGrid || all) join(listOf(hebrew, english)) else join(listOf(english, hebrew))
 
     /**
-     * " · " wrapped in direction marks (LRM in Less/More, RLM in Everything). Without them, Unicode bidi
-     * would glue "וירא · ראש חודש" into one right-to-left run and show the two names in swapped order.
+     * Joins items (Hebrew, English or mixed) into one line. The line follows its FIRST item's language
+     * (first strong character): the first item is plain text, the separator carries a matching direction
+     * mark (RLM after Hebrew, LRM after English), and every later item is wrapped in a first-strong
+     * isolate (FSI…PDI) so its own words keep their order. "שבת פרשת בשלח · Tu B'Shvat · שירה" reads
+     * right-to-left with the items in order; an English-first line reads left-to-right.
      */
-    private val sep get() = if (all) " \u200F·\u200F " else " \u200E·\u200E "
+    fun join(items: List<String>): String {
+        if (items.isEmpty()) return ""
+        if (items.size == 1) return items[0]
+        val mark = if (startsHebrew(items[0])) "\u200F" else "\u200E"
+        return items[0] + items.drop(1).joinToString("") { " $mark·$mark \u2068$it\u2069" }
+    }
+
+    private fun startsHebrew(s: String): Boolean {
+        for (c in s) {
+            if (c in '\u0590'..'\u05FF') return true
+            if (Character.isLetter(c)) return false
+        }
+        return false
+    }
+
 
     /** Always Hebrew letters: "כ׳ חשון תשפ״ז". */
     fun fullHebrewDate(date: LocalDate): String = he.format(jc(date)).replace(",", "")

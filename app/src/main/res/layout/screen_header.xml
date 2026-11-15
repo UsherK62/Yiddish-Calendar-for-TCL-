@@ -20,7 +20,7 @@
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textAlignment="viewStart"
+        android:textAlignment="textStart"
         android:textDirection="firstStrong"
         android:textColor="?attr/ycHeaderText" />
     <TextView
@@ -29,7 +29,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:maxLines="1"
-        android:textAlignment="viewStart"
+        android:textAlignment="textStart"
         android:textDirection="firstStrong"
         android:textColor="?attr/ycHeaderText"
         android:textSize="13sp" />

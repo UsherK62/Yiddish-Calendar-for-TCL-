@@ -54,22 +54,32 @@ class DayActivity : BaseActivity() {
         content.removeAllViews()
         val p = palette
         setSoftKeys(getString(R.string.sk_menu), "", getString(R.string.sk_back))
+        // Top bar: Hebrew date on the reading side, Gregorian date on the other side (no repeated weekday;
+        // the weekday/Shabbos is the first line of the card below).
         val hebShort = luach.fullHebrewDate(date).substringBeforeLast(' ')
-        val weekday = luach.weekdayName(date)
-        // In RTL the title sits on the right: Hebrew date there, weekday on the left.
-        if (prefs.rtlGrid) setHeader(hebShort, weekday) else setHeader("$weekday $hebShort", "")
+        setHeader(hebShort, luach.gregShort(date).substringAfter(' '))
+        findViewById<TextView>(R.id.headerRight).textSize = 14f
 
-        if (prefs.rtlGrid) content.addView(twoCol(luach.fullHebrewDate(date), luach.gregLong(date), p.sub, p.sub, 12f))
-        else content.addView(twoCol(luach.gregLong(date), luach.fullHebrewDate(date), p.sub, p.sub, 12f))
+        // One line: full Hebrew date with year, and the Gregorian year/weekday on the far side.
+        content.addView(twoCol(luach.fullHebrewDate(date), luach.gregLong(date), p.sub, p.sub, 12f))
 
-        // Featured card: parsha / Yom Tov / Rosh Chodesh, else the weekday name.
-        content.addView(TextView(this).apply {
-            text = luach.dayTitle(date)
-            textSize = 16f; setTextColor(p.text); setTypeface(typeface, Typeface.BOLD)
+        // Featured card: each item (שבת פרשת…, Yom Tov, special Shabbos, ר״ח) on its own line, so Hebrew
+        // and English names never get mixed up on one line.
+        content.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             setBackgroundResource(R.drawable.card_bg)
-            setPadding(dp(12f), dp(10f), dp(12f), dp(10f))
-            layoutParams = lp(top = 8f, side = 10f)
-            applyBidi()
+            setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
+            layoutParams = lp(top = 6f, side = 10f)
+            luach.dayTitleParts(date).forEachIndexed { i, part ->
+                addView(TextView(this@DayActivity).apply {
+                    text = part
+                    textSize = if (i == 0) 16f else 14f
+                    setTextColor(if (i == 0) p.text else p.sub)
+                    setTypeface(typeface, Typeface.BOLD)
+                    setPadding(0, if (i == 0) 0 else dp(2f), 0, 0)
+                    applyBidi()
+                })
+            }
         })
 
         for ((k, v) in luach.dayFacts(date)) content.addView(factRow(k, v))
@@ -80,7 +90,7 @@ class DayActivity : BaseActivity() {
         val list = runCatching { events.eventsOn(date) }.getOrDefault(emptyList())
         if (list.isEmpty()) {
             content.addView(TextView(this).apply {
-                text = tr(getString(R.string.no_events)); textSize = 13f; setTextColor(p.sub)
+                text = tr("No events.") + "\n" + tr("Press Menu, then Add event."); textSize = 13f; setTextColor(p.sub)
                 setPadding(dp(14f), dp(8f), dp(14f), dp(8f))
                 isFocusable = false
                 applyBidi()
@@ -113,7 +123,7 @@ class DayActivity : BaseActivity() {
             isFocusable = true
             isClickable = true
             minimumHeight = dp(44f)
-            setBackgroundResource(R.drawable.row_bg)
+            setBackgroundResource(R.drawable.tile_bg)
             setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .also { it.setMargins(dp(10f), dp(3f), dp(10f), 0) }
@@ -124,7 +134,7 @@ class DayActivity : BaseActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
             timeView = TextView(this@DayActivity).apply {
-                text = timeText(e); textSize = 12f; setTextColor(palette.sub); applyBidi()
+                text = timeText(e); textSize = 12f; setTextColor(palette.sub); applyBidiEnd()
                 layoutParams = LinearLayout.LayoutParams(dp(72f), ViewGroup.LayoutParams.WRAP_CONTENT)
             }
             addView(titleView); addView(timeView)
@@ -163,7 +173,7 @@ class DayActivity : BaseActivity() {
     }
 
     override fun onLeftSoft() {
-        KeyDialog(this).title(getString(R.string.sk_menu))
+        KeyDialog(this)
             .item("Add event") { addEvent() }
             .item(getString(R.string.settings)) { startActivity(Intent(this, SettingsActivity::class.java)) }
             .show()
@@ -220,26 +230,16 @@ class DayActivity : BaseActivity() {
             })
             addView(TextView(this@DayActivity).apply {
                 text = b; textSize = size; setTextColor(cb); if (boldValue) setTypeface(typeface, Typeface.BOLD)
-                gravity = Gravity.END; applyBidi()
+                applyBidiEnd()
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             })
         }
 
-    /** Label on the left, value on the right, so English pairs such as "Daf Yomi / Bechoros 43" read naturally. */
-    private fun factRow(label: String, value: String) = LinearLayout(this).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        layoutDirection = View.LAYOUT_DIRECTION_LTR
+    /** One line, e.g. "Daf Yomi: Temurah 34"; aligned by its own language like all text. */
+    private fun factRow(label: String, value: String) = TextView(this).apply {
+        text = "$label: $value"; textSize = 13f; setTextColor(palette.text)
         isFocusable = false
-        setPadding(dp(14f), dp(3f), dp(14f), dp(3f))
-        addView(TextView(this@DayActivity).apply {
-            text = label; textSize = 13f; setTextColor(palette.sub); applyBidi()
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        })
-        addView(TextView(this@DayActivity).apply {
-            text = value; textSize = 13f; setTextColor(palette.text)
-            gravity = Gravity.END; applyBidi()
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        })
+        setPadding(dp(14f), dp(4f), dp(14f), dp(3f))
+        applyBidi()
     }
 }

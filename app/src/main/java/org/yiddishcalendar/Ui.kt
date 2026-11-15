@@ -14,6 +14,7 @@ object Ui {
         "Today" to "היינט", "Go to date" to "גיי צו א דאטום", "Add event" to "הוסף געשעעניש", "About" to "וועגן",
         "Delete?" to "מחק?", "Where" to "וואו",
         "No events. Choose Menu → Add event." to "קיין געשעענישן. קלייב תפריט ← הוסף געשעעניש.",
+        "No events." to "קיין געשעענישן.", "Press Menu, then Add event." to "דריק תפריט, דערנאך הוסף געשעעניש.",
         "Night date: Brooklyn; Jerusalem if In Israel. Not your location." to "דאטום ביי נאכט: ברוקלין; אין ארץ ישראל: ירושלים. נישט לויט אייער ארט.",
         "Saved" to "נשמר",
         "Saved on this phone only. No reminders." to "נשמר נאר אין טעלעפאן. אן דערמאנונגען.",
@@ -24,7 +25,8 @@ object Ui {
         "Every month" to "יעדן חודש", "Every year" to "יעדעס יאר", "None" to "קיינע", "Type a title" to "שרייב א נאמען",
         // settings
         "Hebrew text" to "עברית", "In Israel" to "ארץ ישראל", "Show parsha" to "ווייז פרשה",
-        "Date changes at night" to "דאטום טוישט זיך ביי נאכט", "Theme" to "פארבן", "Direction" to "ריכטונג",
+        "Date changes at night" to "דאטום טוישט זיך ביי נאכט", "Date at nightfall" to "דאטום ביי נאכט",
+        "Brooklyn or Jerusalem" to "ברוקלין אדער ירושלים", "Theme" to "פארבן", "Direction" to "ריכטונג",
         "Display" to "אויסזען", "Calendar" to "לוח", "Other" to "אנדערע",
         "Save events to" to "שפייכלער", "Automatic" to "אויטאמאטיש", "This phone only" to "נאר אין טעלעפאן",
         "ON" to "יא", "OFF" to "ניין", "Dark" to "טונקל", "Light" to "ליכטיג",

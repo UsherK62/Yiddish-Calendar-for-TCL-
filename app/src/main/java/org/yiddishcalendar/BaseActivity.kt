@@ -50,6 +50,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = Prefs(this)
+        UiDir.rtl = prefs.rtlGrid
         setTheme(if (prefs.theme == 1) R.style.Theme_YC_Light else R.style.Theme_YC_Dark)
         themeRev = prefs.theme
         super.onCreate(savedInstanceState)
@@ -66,11 +67,12 @@ abstract class BaseActivity : AppCompatActivity() {
     /** Whole UI follows Settings → Right-to-left. The soft-key bar stays LTR so labels match the physical keys. */
     fun applyUiDirection() {
         val rtl = prefs.rtlGrid
+        UiDir.rtl = rtl
         window?.decorView?.applyUiDir(rtl)
         findViewById<View>(R.id.softBar)?.layoutDirection = View.LAYOUT_DIRECTION_LTR
         findViewById<View>(R.id.header)?.applyUiDir(rtl)
         findViewById<TextView>(R.id.headerTitle)?.applyBidi()
-        findViewById<TextView>(R.id.headerRight)?.applyBidi()
+        findViewById<TextView>(R.id.headerRight)?.applyBidiEnd()
         findViewById<TextView>(R.id.statusTitle)?.applyBidi()
         findViewById<TextView>(R.id.statusSub)?.applyBidi()
     }
@@ -130,12 +132,24 @@ abstract class BaseActivity : AppCompatActivity() {
 
 
     companion object {
+        /**
+         * The bar is always left-to-right and each label is pinned with ABSOLUTE gravity over its key:
+         * left label flush left (left soft key), right label flush right (right soft key), center label
+         * centred (OK). 0.2.1 bug: applyBidi() set textAlignment=viewStart, which overrode gravity=end, so
+         * the right label ("Add"/"Back") sat next to the centre pill instead of at the far right.
+         */
         fun bindBar(bar: View, left: String, center: String, right: String) {
-            bar.findViewById<TextView>(R.id.skLeft).apply { text = left; applyBidi() }
-            bar.findViewById<TextView>(R.id.skRight).apply { text = right; applyBidi() }
+            bar.layoutDirection = View.LAYOUT_DIRECTION_LTR
+            fun TextView.pin(g: Int) {
+                gravity = g or android.view.Gravity.CENTER_VERTICAL
+                textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+                textDirection = View.TEXT_DIRECTION_FIRST_STRONG
+            }
+            bar.findViewById<TextView>(R.id.skLeft).apply { text = left; pin(android.view.Gravity.LEFT) }
+            bar.findViewById<TextView>(R.id.skRight).apply { text = right; pin(android.view.Gravity.RIGHT) }
             bar.findViewById<TextView>(R.id.skCenter).apply {
                 text = center
-                applyBidi()
+                pin(android.view.Gravity.CENTER_HORIZONTAL)
                 visibility = if (center.isEmpty()) View.INVISIBLE else View.VISIBLE
             }
         }

@@ -1,24 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rounded tile: thick focus/activated ring, same language as the month-grid selection. -->
+<!-- Row inside a card (Settings, pop-up lists): no box of its own, so there is never a box inside a box.
+     Focused/activated: one clear highlight, a tinted fill with a thin 2dp ring. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <solid android:color="?attr/ycCellShabbos" />
-            <stroke android:width="3dp" android:color="?attr/ycFocus" />
+            <stroke android:width="2dp" android:color="?attr/ycFocus" />
             <corners android:radius="8dp" />
         </shape>
     </item>
     <item android:state_activated="true">
         <shape android:shape="rectangle">
             <solid android:color="?attr/ycCellShabbos" />
-            <stroke android:width="3dp" android:color="?attr/ycFocus" />
+            <stroke android:width="2dp" android:color="?attr/ycFocus" />
             <corners android:radius="8dp" />
         </shape>
     </item>
     <item>
-        <shape android:shape="rectangle">
-            <solid android:color="?attr/ycCell" />
-            <corners android:radius="8dp" />
-        </shape>
+        <color android:color="@android:color/transparent" />
     </item>
 </selector>

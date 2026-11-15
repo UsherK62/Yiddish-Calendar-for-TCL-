@@ -35,21 +35,43 @@ class AboutActivity : BaseActivity() {
             setPadding(0, 0, 0, dp(8f))
             applyBidi()
         })
-        for (para in listOf(
-            "Offline, no ads, no internet.",
-            "Keys: 4/6 month · 1/3 year · 0 today · * go to date · # Hebrew/Gregorian",
-            "Credits: KosherJava (LGPL), Calendar by kizitonwose (MIT), Noto Sans Hebrew (OFL)",
+        fun para(t: String, color: Int = p.text, size: Float = 13f) = card.addView(TextView(this).apply {
+            text = tr(t); textSize = size; setTextColor(color)
+            includeFontPadding = false
+            setLineSpacing(dp(2f).toFloat(), 1f)
+            setPadding(0, dp(4f), 0, dp(4f))
+            applyBidi()
+        })
+        para("Offline, no ads, no internet.")
+        para("Keys", p.sub, 11f)
+        // One key per line: what it does on the reading side, the key itself on the far side.
+        for ((action, key) in listOf(
+            "Next / previous month" to "4  6",
+            "Next / previous year" to "1  3",
+            "Today" to "0",
+            "Go to date" to "*",
+            "Hebrew / Gregorian" to "#",
         )) {
-            card.addView(TextView(this).apply {
-                text = para
-                textSize = 13f
-                setTextColor(p.text)
-                includeFontPadding = false
-                setLineSpacing(dp(2f).toFloat(), 1f)
-                setPadding(0, dp(4f), 0, dp(4f))
-                applyBidi()
+            card.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutDirection = if (prefs.rtlGrid) android.view.View.LAYOUT_DIRECTION_RTL else android.view.View.LAYOUT_DIRECTION_LTR
+                setPadding(0, dp(2f), 0, dp(2f))
+                addView(TextView(this@AboutActivity).apply {
+                    text = tr(action); textSize = 13f; setTextColor(p.text); maxLines = 1; applyBidi()
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                addView(TextView(this@AboutActivity).apply {
+                    text = key; textSize = 13f; setTextColor(p.text); setTypeface(typeface, Typeface.BOLD); maxLines = 1
+                    textDirection = android.view.View.TEXT_DIRECTION_LTR
+                    layoutParams = LinearLayout.LayoutParams(dp(34f), LinearLayout.LayoutParams.WRAP_CONTENT)
+                    gravity = android.view.Gravity.CENTER
+                })
             })
         }
+        para("Credits", p.sub, 11f)
+        para("KosherJava (LGPL)")
+        para("Calendar by kizitonwose (MIT)")
+        para("Noto Sans Hebrew (OFL)")
         scroll.requestFocus()
     }
 

@@ -88,8 +88,7 @@ class KeyDialog(private val act: BaseActivity) :
                     text = value; textSize = 14f; setTextColor(p.text)
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                    gravity = android.view.Gravity.END
-                    applyBidi()
+                    applyBidiEnd()
                 })
             })
         }
@@ -118,7 +117,11 @@ class KeyDialog(private val act: BaseActivity) :
                         addView(TextView(act).apply { text = n; textSize = 11f; setTextColor(p.sub); applyBidi() })
                     }
                 })
-                if (i < 9 && checked < 0) addView(TextView(act).apply { text = (i + 1).toString(); textSize = 12f; setTextColor(p.sub) })
+                // Item number in its own small column with a gap, so it never touches a left-aligned English label.
+                if (i < 9 && checked < 0) addView(TextView(act).apply {
+                    text = (i + 1).toString(); textSize = 12f; setTextColor(p.sub); gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(act.dp(16f), ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = act.dp(8f) }
+                })
                 setOnClickListener { dismiss(); action() }
             })
         }
@@ -129,7 +132,7 @@ class KeyDialog(private val act: BaseActivity) :
                 inputType = if (decimal) InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or
                     InputType.TYPE_NUMBER_FLAG_SIGNED else InputType.TYPE_CLASS_NUMBER
                 setText(inputInitial); setSelection(inputInitial.length)
-                setBackgroundResource(R.drawable.row_bg)
+                setBackgroundResource(R.drawable.tile_bg)
                 setPadding(act.dp(10f), act.dp(6f), act.dp(10f), act.dp(6f))
                 applyBidi()
             }

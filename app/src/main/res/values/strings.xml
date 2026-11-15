@@ -14,5 +14,4 @@
     <string name="settings">Settings</string>
     <string name="new_event">New event</string>
     <string name="events">Events</string>
-    <string name="no_events">No events. Choose Menu → Add event.</string>
 </resources>

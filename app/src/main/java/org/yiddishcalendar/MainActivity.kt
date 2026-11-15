@@ -31,6 +31,10 @@ import java.time.LocalDate
  *   Left soft (or MENU) = Menu   Right soft = Add event
  */
 class MainActivity : BaseActivity() {
+    companion object {
+        /** Host screenshot tests only: start with this day selected (epoch day). */
+        const val EXTRA_TEST_DATE = "test_date"
+    }
     private lateinit var cv: CalendarView
     private lateinit var pages: MonthPages
     private var selected: LocalDate = LocalDate.now()
@@ -60,9 +64,12 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         cv = findViewById(R.id.calendar)
+        findViewById<View>(R.id.header).layoutParams.height = dp(36f)
         setSoftKeys(getString(R.string.sk_menu), getString(R.string.sk_open), getString(R.string.sk_add))
         today = luach.today()
-        selected = savedInstanceState?.getLong("sel")?.let { LocalDate.ofEpochDay(it) } ?: today
+        selected = savedInstanceState?.getLong("sel")?.let { LocalDate.ofEpochDay(it) }
+            ?: intent?.getLongExtra(EXTRA_TEST_DATE, Long.MIN_VALUE)?.takeIf { it != Long.MIN_VALUE }?.let { LocalDate.ofEpochDay(it) }
+            ?: today
         cv.dayBinder = DayBinder()
         cv.itemAnimator = null // instant page changes (slow MT6739 CPU)
         setupCalendar()
@@ -141,13 +148,17 @@ class MainActivity : BaseActivity() {
 
     private fun updateTexts() {
         val (first, len) = pages.range(currentOffset)
-        if (!pages.hebrew && prefs.rtlGrid) {
-            setHeader(luach.pageSubtitle(first, len, false), luach.pageSubtitle(first, len, true))
-        } else {
-            setHeader(luach.pageTitle(first, pages.hebrew), luach.pageSubtitle(first, len, pages.hebrew))
-        }
-        findViewById<TextView>(R.id.statusTitle).text = luach.dayTitle(selected)
-        findViewById<TextView>(R.id.statusSub).text = luach.daySubtitle(selected)
+        val h = HeaderText.of(luach, first, len, pages.hebrew, prefs.rtlGrid)
+        setHeader(h.start, h.end)
+        val title = findViewById<TextView>(R.id.headerTitle)
+        val right = findViewById<TextView>(R.id.headerRight)
+        // The month being viewed is the big bold text; the other calendar's months are smaller.
+        title.textSize = if (h.startIsMain) 19f else 12.5f
+        title.typeface = Typeface.create(title.typeface, if (h.startIsMain) Typeface.BOLD else Typeface.NORMAL)
+        right.textSize = if (h.startIsMain) 13f else 17f
+        right.typeface = Typeface.create(right.typeface, if (h.startIsMain) Typeface.NORMAL else Typeface.BOLD)
+        findViewById<TextView>(R.id.statusTitle).apply { text = luach.dayTitle(selected); applyBidi() }
+        findViewById<TextView>(R.id.statusSub).apply { text = luach.daySubtitle(selected); applyBidi() }
     }
 
     private fun updateCompact() {
@@ -224,7 +235,7 @@ class MainActivity : BaseActivity() {
     override fun onBackKey() { finish() }
 
     override fun onLeftSoft() {
-        KeyDialog(this).title(getString(R.string.sk_menu))
+        KeyDialog(this) // no title strip: the numbered list is self-explanatory
             .item("Today") { moveTo(today) }
             .item("Go to date") { goToDate() }
             .item("Add event") { onRightSoft() }
@@ -274,11 +285,7 @@ class MainActivity : BaseActivity() {
     // ---------------- Day cells ----------------
 
     inner class DayContainer(view: View) : ViewContainer(view) {
-        val box: FrameLayout = view.findViewById(R.id.cellBox)
-        val greg: TextView = view.findViewById(R.id.cellGreg)
-        val heb: TextView = view.findViewById(R.id.cellHeb)
-        val mark: TextView = view.findViewById(R.id.cellMark)
-        val dot: View = view.findViewById(R.id.cellEventDot)
+        val box: DayCellView = view.findViewById(R.id.cellBox)
     }
 
     inner class DayBinder : MonthDayBinder<DayContainer> {
@@ -291,45 +298,70 @@ class MainActivity : BaseActivity() {
             val isToday = date == today
             val isSelected = inMonth && date == selected
             val p = palette
+            val v = container.box
 
-            container.box.applyUiDir(prefs.rtlGrid)
-            container.box.background = GradientDrawable().apply {
+            // In-month days are filled tiles; days of the next/previous month have no tile at all, so the
+            // shown month stands out clearly while their numbers stay readable.
+            v.background = GradientDrawable().apply {
                 cornerRadius = dp(6f).toFloat()
                 setColor(
                     when {
                         isToday -> p.today
-                        shabbos || (inMonth && luach.isSpecialDay(date)) -> p.cellShabbos
+                        !inMonth -> 0
+                        shabbos || luach.isSpecialDay(date) -> p.cellShabbos
                         else -> p.cell
                     },
                 )
-                if (isSelected) setStroke(dp(3f), p.focus)
+                if (isSelected) setStroke(dp(2f), p.focus)
             }
-            val main = if (inMonth) p.text else p.dim
-            container.greg.text = date.dayOfMonth.toString()
-            container.greg.setTextColor(if (inMonth) p.sub else p.dim)
-            val num = luach.cellNumber(date)
-            container.heb.text = num
-            container.heb.textSize = 14f
-            container.greg.textSize = 9f
-            container.heb.setTextColor(main)
-            val markText = luach.cellMark(date)
-            // Never put full holiday/parsha names into a ~31dp cell. They are in the footer/day screen.
-            // Five-row pages can show the short Hebrew Rosh Chodesh label; six-row pages use an indicator.
-            val shortLabel = !compact && luach.jc(date).isRoshChodesh
-            container.mark.text = if (shortLabel) "ר״ח" else ""
-            container.mark.textSize = if (shortLabel) 11f else 10f
-            container.mark.setTextColor(main)
-            container.mark.background = if (!shortLabel && markText != null) {
-                android.graphics.drawable.LayerDrawable(arrayOf(GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL; setColor(main)
-                })).apply { setLayerSize(0, dp(3f), dp(3f)); setLayerGravity(0, Gravity.CENTER) }
-            } else null
-            container.mark.visibility = if (markText == null && !shortLabel) View.GONE else View.VISIBLE
-            container.mark.layoutParams = container.mark.layoutParams.apply { height = dp(if (shortLabel) 14f else 5f) }
-            container.box.contentDescription = luach.fullHebrewDate(date) + ", " + luach.dayTitle(date)
+            val cell = CellText.of(luach, date, pages.hebrew)
+            v.main = cell.main
+            v.small = cell.small
+            // Always-visible short holiday label (no need to select the day to see it).
+            v.label = if (inMonth) cell.label else null
+            v.mainColor = if (inMonth) p.text else p.dim
+            v.smallColor = if (inMonth) p.sub else p.dim
+            v.labelColor = if (isToday) p.text else p.focus
+            v.dotColor = p.focus
+            v.eventDot = date in eventDays
+            v.compact = compact
+            v.rtl = prefs.rtlGrid
+            v.contentDescription = luach.fullHebrewDate(date) + ", " + luach.dayTitle(date)
+            v.invalidate()
+        }
+    }
+}
 
-            container.dot.visibility = if (date in eventDays) View.VISIBLE else View.GONE
-            container.dot.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(main) }
+/**
+ * What one day cell shows. Hebrew mode: big Hebrew day letters, small Gregorian number.
+ * Gregorian mode: big Gregorian number, small Hebrew letters (0.2.1 bug: Gregorian mode kept the
+ * Hebrew-first cell, so switching only moved the page boundaries and looked like a one-week scroll).
+ */
+data class CellText(val main: String, val small: String, val label: String?) {
+    companion object {
+        fun of(luach: Luach, date: LocalDate, hebrewPages: Boolean): CellText {
+            val heb = luach.cellNumber(date)
+            val greg = date.dayOfMonth.toString()
+            return if (hebrewPages) CellText(heb, greg, luach.cellLabel(date)) else CellText(greg, heb, luach.cellLabel(date))
+        }
+    }
+}
+
+/**
+ * Month-screen header. [start] is on the reading side (right in RTL), [end] on the other side.
+ * RTL keeps the Hebrew month on the right and the Gregorian month on the left in BOTH modes;
+ * the primary calendar of the mode is the big one ([startIsMain]).
+ */
+data class HeaderText(val start: String, val end: String, val startIsMain: Boolean) {
+    companion object {
+        fun of(luach: Luach, first: LocalDate, len: Int, hebrewPages: Boolean, rtl: Boolean): HeaderText {
+            val main = luach.pageTitle(first, hebrewPages)           // "שבט תשפ״ז" or "January 2027"
+            val other = luach.pageSubtitle(first, len, hebrewPages)  // "Jan–Feb 2027" or "טבת–שבט תשפ״ז"
+            return when {
+                !rtl -> HeaderText(main, other, true)
+                hebrewPages -> HeaderText(main, other, true)
+                else -> HeaderText(other, main, false)
+            }
         }
     }
 }

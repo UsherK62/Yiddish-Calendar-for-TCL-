@@ -10,55 +10,16 @@ android {
         applicationId = "com.yiddishcalendar.app"
         minSdk = 26
         targetSdk = 30 // Android 11 phone; old-style runtime permissions
-        versionCode = 6
-        versionName = "0.2.1"
-    }
-    signingConfigs {
-        // Optional release signing from a gitignored keystore.properties file
-        // or environment variables. If those are not set, release falls back
-        // to the debug key (see buildTypes.release).
-        val props = java.util.Properties()
-        val propsFile = rootProject.file("keystore.properties")
-        if (propsFile.isFile) {
-            propsFile.inputStream().use { props.load(it) }
-        }
-        fun cfg(prop: String, env: String): String? =
-            System.getenv(env)?.takeIf { it.isNotBlank() }
-                ?: props.getProperty(prop)?.takeIf { it.isNotBlank() }
-
-        val storePath = cfg("storeFile", "YIDDISH_CALENDAR_STORE_FILE")
-        val storePasswordValue = cfg("storePassword", "YIDDISH_CALENDAR_STORE_PASSWORD")
-        val keyAliasValue = cfg("keyAlias", "YIDDISH_CALENDAR_KEY_ALIAS")
-        val keyPasswordValue = cfg("keyPassword", "YIDDISH_CALENDAR_KEY_PASSWORD")
-        val store = storePath?.let { path ->
-            val asIs = file(path)
-            when {
-                asIs.isFile -> asIs
-                rootProject.file(path).isFile -> rootProject.file(path)
-                else -> null
-            }
-        }
-        if (store != null &&
-            storePasswordValue != null &&
-            keyAliasValue != null &&
-            keyPasswordValue != null
-        ) {
-            create("release") {
-                storeFile = store
-                storePassword = storePasswordValue
-                keyAlias = keyAliasValue
-                keyPassword = keyPasswordValue
-            }
-        }
+        versionCode = 7
+        versionName = "0.2.2"
     }
     buildTypes {
         release {
-            // First test builds: no R8, so nothing reflective gets stripped.
+            // First test build: no R8, so nothing reflective gets stripped. Signed afterwards with apksigner.
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.findByName("release")
-                ?: signingConfigs.getByName("debug")
+            // Signing: add a NEW throwaway key here later (never /workspace/hebcal/keystore).
         }
     }
     compileOptions {
@@ -66,7 +27,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { buildConfig = true }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        // Robolectric screenshot tests (host only, render mockups of the real layouts).
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.systemProperty("ycal.shots", rootProject.file("screens/fixes").absolutePath) }
+    }
     // Sideloaded test build for an Android 11 keypad phone, not Google Play.
     lint { disable += "ExpiredTargetSdkVersion" }
 }
@@ -75,6 +41,8 @@ kotlin { jvmToolchain(17) }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core:1.6.1")
     implementation(project(":calendarlib"))
     implementation("com.kosherjava:zmanim:3.0.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
