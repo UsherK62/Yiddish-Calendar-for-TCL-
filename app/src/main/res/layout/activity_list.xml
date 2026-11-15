@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared by Settings and the Add-event form: header, a vertical list of big rows, soft-key bar. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/ycBg"
+    android:orientation="vertical">
+
+    <include layout="@layout/screen_header" />
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/ycLine" />
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:focusable="false"
+        android:descendantFocusability="afterDescendants">
+        <LinearLayout
+            android:id="@+id/rows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp" />
+    </ScrollView>
+
+    <!-- One-line hint for the focused row, e.g. "◀ ▶ change". -->
+    <TextView
+        android:id="@+id/hint"
+        style="@style/YC.Sub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp" />
+
+    <include layout="@layout/softkey_bar" />
+</LinearLayout>

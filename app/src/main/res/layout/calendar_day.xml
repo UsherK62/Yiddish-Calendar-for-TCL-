@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Separate bounded number row and marker strip: no overlaying date/holiday text. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:focusable="false" android:padding="2dp">
+    <FrameLayout android:id="@+id/cellBox" android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:paddingTop="1dp" android:paddingBottom="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+                android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
+                <TextView android:id="@+id/cellGreg" android:layout_width="11dp" android:layout_height="match_parent"
+                    android:gravity="top|start" android:includeFontPadding="false" android:maxLines="1" android:textSize="9sp" />
+                <TextView android:id="@+id/cellHeb" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+                    android:gravity="center" android:includeFontPadding="false" android:maxLines="1" android:textSize="14sp" android:textStyle="bold" />
+            </LinearLayout>
+            <TextView android:id="@+id/cellMark" android:layout_width="match_parent" android:layout_height="5dp"
+                android:gravity="center" android:includeFontPadding="false" android:maxLines="1" android:textSize="10sp" android:textStyle="bold" />
+        </LinearLayout>
+        <View android:id="@+id/cellEventDot" android:layout_width="3dp" android:layout_height="3dp"
+            android:layout_gravity="top|end" android:layout_margin="3dp" android:visibility="gone" />
+    </FrameLayout>
+</FrameLayout>

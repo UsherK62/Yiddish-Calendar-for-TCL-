@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="ycBg" format="color" />
+    <attr name="ycCell" format="color" />
+    <attr name="ycCellShabbos" format="color" />
+    <attr name="ycToday" format="color" />
+    <attr name="ycBar" format="color" />
+    <attr name="ycCard" format="color" />
+    <attr name="ycPill" format="color" />
+    <attr name="ycLine" format="color" />
+    <attr name="ycText" format="color" />
+    <attr name="ycSub" format="color" />
+    <attr name="ycDim" format="color" />
+    <attr name="ycFocus" format="color" />
+    <attr name="ycHeader" format="color" />
+    <attr name="ycHeaderText" format="color" />
+</resources>

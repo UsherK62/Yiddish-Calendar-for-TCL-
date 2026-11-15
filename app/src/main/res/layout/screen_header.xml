@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Blue header bar. Title (Hebrew month on the grid) and the right-hand text (Gregorian range) share one
+     baseline. In the right-to-left grid MainActivity sets layoutDirection RTL, so the Hebrew title sits on the
+     right and the Gregorian range on the left. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/header"
+    android:layout_width="match_parent"
+    android:layout_height="32dp"
+    android:background="?attr/ycHeader"
+    android:baselineAligned="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="9dp"
+    android:paddingEnd="9dp">
+    <TextView
+        android:id="@+id/headerTitle"
+        style="@style/YC.Title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAlignment="viewStart"
+        android:textDirection="firstStrong"
+        android:textColor="?attr/ycHeaderText" />
+    <TextView
+        android:id="@+id/headerRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:maxLines="1"
+        android:textAlignment="viewStart"
+        android:textDirection="firstStrong"
+        android:textColor="?attr/ycHeaderText"
+        android:textSize="13sp" />
+</LinearLayout>

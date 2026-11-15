@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yiddish Calendar</string>
+    <string name="sk_menu">Menu</string>
+    <string name="sk_open">Open</string>
+    <string name="sk_add">Add</string>
+    <string name="sk_back">Back</string>
+    <string name="sk_save">Save</string>
+    <string name="sk_change">Change</string>
+    <string name="sk_edit">Edit</string>
+    <string name="sk_select">Select</string>
+    <string name="sk_go">Go</string>
+    <string name="sk_delete">Delete</string>
+    <string name="settings">Settings</string>
+    <string name="new_event">New event</string>
+    <string name="events">Events</string>
+    <string name="no_events">No events. Choose Menu → Add event.</string>
+</resources>

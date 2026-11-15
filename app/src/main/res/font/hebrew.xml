@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bundled Noto Sans Hebrew (SIL OFL 1.1, see /licenses): clean sans letters, no niqqud needed.
+     It has only Hebrew glyphs; Latin text and digits fall back to the system font (Roboto). -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font android:font="@font/noto_sans_hebrew_regular" android:fontStyle="normal" android:fontWeight="400" />
+    <font android:font="@font/noto_sans_hebrew_bold" android:fontStyle="normal" android:fontWeight="700" />
+</font-family>

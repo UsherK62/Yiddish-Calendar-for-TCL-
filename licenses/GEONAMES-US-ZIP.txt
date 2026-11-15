@@ -1,0 +1,6 @@
+app/src/main/assets/us_zip.csv is derived from the GeoNames postal code dump for the US
+(https://download.geonames.org/export/zip/US.zip, downloaded 2026-10-30).
+Licence: Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+Credit: GeoNames, www.geonames.org. The data is provided "as is" without warranty.
+Changes: kept zip, lat, lon (4 decimals), state, place; added a time-zone column computed from the
+coordinates with the timezonefinder Python package (MIT). The About screen credits GeoNames.

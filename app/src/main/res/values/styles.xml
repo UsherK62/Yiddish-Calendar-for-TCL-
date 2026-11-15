@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark: deeper slate background so surfaces lift, blue header like the app icon,
+         white text, blue-tinted Shabbos/Yom Tov cells, amber "today", thick white selected ring. -->
+    <style name="Theme.YC.Dark" parent="Theme.AppCompat.NoActionBar">
+        <item name="ycBg">#252A31</item>
+        <item name="ycCell">#3F4853</item>
+        <item name="ycCellShabbos">#3A5678</item>
+        <item name="ycToday">#C4621A</item>
+        <item name="ycBar">#1F242A</item>
+        <item name="ycCard">#353C46</item>
+        <item name="ycPill">#4A5561</item>
+        <item name="ycLine">#5E6772</item>
+        <item name="ycText">#FFFFFF</item>
+        <item name="ycSub">#C9D1DA</item>
+        <item name="ycDim">#8E97A1</item>
+        <item name="ycFocus">#FFFFFF</item>
+        <item name="ycHeader">#2F6FD6</item>
+        <item name="ycHeaderText">#FFFFFF</item>
+        <item name="android:windowBackground">#252A31</item>
+        <item name="android:statusBarColor">#2F6FD6</item>
+        <item name="android:navigationBarColor">#1F242A</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="android:textCursorDrawable">@null</item>
+        <!-- Bundled Hebrew font for every TextView (Latin falls back to the system font). -->
+        <item name="android:fontFamily">@font/hebrew</item>
+        <item name="fontFamily">@font/hebrew</item>
+    </style>
+
+    <!-- Light (default): off-white background, cool gray cells, blue-gray Shabbos, soft amber today,
+         blue selected ring, same blue header as Dark. -->
+    <style name="Theme.YC.Light" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="ycBg">#F3F5F7</item>
+        <item name="ycCell">#E6E9EE</item>
+        <item name="ycCellShabbos">#D3DCEA</item>
+        <item name="ycToday">#E9C99A</item>
+        <item name="ycBar">#E4E7EC</item>
+        <item name="ycCard">#FFFFFF</item>
+        <item name="ycPill">#D2D7DE</item>
+        <item name="ycLine">#C4C9D1</item>
+        <item name="ycText">#1A1E24</item>
+        <item name="ycSub">#4A525C</item>
+        <item name="ycDim">#8A929C</item>
+        <item name="ycFocus">#1F5AB5</item>
+        <item name="ycHeader">#2F6FD6</item>
+        <item name="ycHeaderText">#FFFFFF</item>
+        <item name="android:windowBackground">#F3F5F7</item>
+        <item name="android:statusBarColor">#2F6FD6</item>
+        <item name="android:navigationBarColor">#E4E7EC</item>
+        <item name="android:textColor">#1A1E24</item>
+        <item name="colorAccent">#1F5AB5</item>
+        <item name="android:textCursorDrawable">@null</item>
+        <item name="android:fontFamily">@font/hebrew</item>
+        <item name="fontFamily">@font/hebrew</item>
+    </style>
+
+    <!-- Full screen transparent dialogs; KeyDialog draws its own dim layer and soft-key bar.
+         They extend the app themes so ?attr/yc* colours and the Hebrew font resolve inside dialogs. -->
+    <!-- Implicit parent of the YC.* styles below. -->
+    <style name="YC" />
+
+    <style name="YC.Dialog.Dark" parent="Theme.YC.Dark">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+    <style name="YC.Dialog.Light" parent="Theme.YC.Light">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <style name="YC.Title">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/ycText</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="YC.RowTitle">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/ycText</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="YC.Sub">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/ycSub</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="YC.Label">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/ycSub</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+    <style name="YC.Row">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:layout_marginEnd">8dp</item>
+        <item name="android:layout_marginTop">3dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:background">@drawable/row_bg</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+</resources>

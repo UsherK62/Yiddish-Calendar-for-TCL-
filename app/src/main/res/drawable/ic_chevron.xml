@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Points toward the end (right in LTR). autoMirrored flips it in RTL. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp" android:height="16dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:autoMirrored="true">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M9.3,5.3L16.6,12 9.3,18.7 8,17.4 14,12 8,6.6z"/>
+</vector>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full-width settings/form/event row: solid header-blue bar when focused, hairline when not. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/ycHeader" />
+        </shape>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <color android:color="@android:color/transparent" />
+            </item>
+            <item android:gravity="bottom" android:height="1dp">
+                <color android:color="?attr/ycLine" />
+            </item>
+        </layer-list>
+    </item>
+</selector>

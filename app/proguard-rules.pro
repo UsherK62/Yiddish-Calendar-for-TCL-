@@ -1,0 +1,2 @@
+-keep class com.kosherjava.zmanim.** { *; }
+-dontwarn androidx.compose.runtime.Immutable
