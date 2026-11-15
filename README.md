@@ -4,8 +4,6 @@ A Hebrew/Yiddish calendar app for keypad flip phones such as the TCL Flip 2 (240
 
 It shows Hebrew dates (letters, not numbers), month names, and Shabbos parsha names, and it can store calendar events. There are no ads and the app does not use the internet. It only asks for calendar permission so it can read and write events.
 
-Light theme is the default. The layout is right-to-left, with Sunday on the right.
-
 This is version 0.2.1 (package `com.yiddishcalendar.app`). It is meant for Android 8 and up, and it targets Android 11, which is what that phone runs.
 
 ## Build
