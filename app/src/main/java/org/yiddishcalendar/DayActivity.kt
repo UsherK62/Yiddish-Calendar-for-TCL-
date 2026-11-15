@@ -110,7 +110,20 @@ class DayActivity : BaseActivity() {
         }
     }
 
+    /** Multi-day event: "Day 2 of 3" in the list; (first, last, total) or null for a one-day event. */
+    private fun spanOf(e: Ev): Triple<LocalDate, LocalDate, Int>? {
+        val (first, last) = EventDates.span(e.startMillis, e.endMillis, e.allDay, ZoneId.systemDefault())
+        val n = (last.toEpochDay() - first.toEpochDay()).toInt() + 1
+        return if (n > 1) Triple(first, last, n) else null
+    }
+
+    private fun dayOfText(e: Ev): String? = spanOf(e)?.let { (first, _, n) ->
+        val k = (date.toEpochDay() - first.toEpochDay()).toInt() + 1
+        if (prefs.hebrewText >= 2) "טאג $k/$n" else "Day $k of $n"
+    }
+
     private fun timeText(e: Ev): String {
+        dayOfText(e)?.let { return it }
         if (e.allDay) return tr("All day")
         return DateTimeFormatter.ofPattern("h:mm a", Locale.US).format(Instant.ofEpochMilli(e.startMillis).atZone(ZoneId.systemDefault()))
     }
@@ -156,6 +169,7 @@ class DayActivity : BaseActivity() {
 
     private fun showEvent(e: Ev) {
         val d = KeyDialog(this).title(timeText(e)).line(e.title)
+        spanOf(e)?.let { (first, last, _) -> d.line(luach.gregShort(first) + " – " + luach.gregShort(last)) }
         if (e.location.isNotEmpty()) d.line("Where", e.location)
         if (e.notes.isNotEmpty()) d.line(e.notes.take(200))
         d.line(if (e.local) "Saved on this phone only" else "In the phone calendar")

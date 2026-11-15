@@ -26,7 +26,7 @@
             android:paddingBottom="8dp" />
     </ScrollView>
 
-    <!-- One-line hint for the focused row, e.g. "◀ ▶ change". -->
+    <!-- One-line hint for the focused row, e.g. "OK to choose". -->
     <TextView
         android:id="@+id/hint"
         style="@style/YC.Sub"

@@ -131,8 +131,9 @@ class EventRepository(private val context: Context, private val prefs: Prefs) {
      * Saves an event. [startMinutes] null = all day. Reports the destination and any reminder failure.
      * Throws only if the event could not be saved anywhere.
      */
-    fun add(title: String, date: LocalDate, startMinutes: Int?, repeat: Repeat, reminderMinutes: Int?): SaveResult {
+    fun add(title: String, date: LocalDate, startMinutes: Int?, repeat: Repeat, reminderMinutes: Int?, days: Int = 1): SaveResult {
         require(title.isNotBlank()) { "Type a title first" }
+        require(days in 1..366) { "Invalid number of days" }
         require(startMinutes == null || startMinutes in 0..1439) { "Invalid time" }
         require(reminderMinutes == null || reminderMinutes >= 0) { "Invalid reminder" }
         val allDay = startMinutes == null
@@ -140,10 +141,11 @@ class EventRepository(private val context: Context, private val prefs: Prefs) {
         val end: Long
         if (allDay) {
             start = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-            end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+            end = date.plusDays(days.toLong()).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         } else {
+            // Multi-day timed event: from the start time on the first day to one hour after it on the last day.
             start = EventDates.timedStart(date, startMinutes!!, zone)
-            end = start + 3_600_000L
+            end = EventDates.timedStart(date.plusDays(days - 1L), startMinutes, zone) + 3_600_000L
         }
         val cal = targetCalendar()
         if (cal == null) {
@@ -158,7 +160,7 @@ class EventRepository(private val context: Context, private val prefs: Prefs) {
             put(CalendarContract.Events.EVENT_TIMEZONE, if (allDay) "UTC" else zone.id)
             if (repeat.rrule != null) {
                 put(CalendarContract.Events.RRULE, repeat.rrule)
-                put(CalendarContract.Events.DURATION, if (allDay) "P1D" else "PT1H")
+                put(CalendarContract.Events.DURATION, if (allDay) "P${days}D" else "PT${(end - start) / 1000}S")
             } else {
                 put(CalendarContract.Events.DTEND, end)
             }

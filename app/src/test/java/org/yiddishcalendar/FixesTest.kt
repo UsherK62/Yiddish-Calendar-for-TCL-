@@ -149,12 +149,7 @@ class FixesTest {
             val card = rows.getChildAt(i) as? android.widget.LinearLayout ?: continue
             for (j in 0 until card.childCount) {
                 val row = card.getChildAt(j) as? android.widget.LinearLayout ?: continue
-                if (row.childCount < 3) continue
-                val chevron = row.getChildAt(2)
-                if (chevron.visibility == View.VISIBLE) {
-                    assertTrue("chevron must be right of the label", chevron.left >= row.getChildAt(0).right)
-                    assertEquals(View.LAYOUT_DIRECTION_LTR, row.layoutDirection) // English label -> ">" at the right end
-                }
+                if (row.childCount < 2) continue
                 if (row.getChildAt(1).visibility != View.VISIBLE) continue
                 toggles++
                 assertTrue("switch must be right of the label", row.getChildAt(1).left >= row.getChildAt(0).right)

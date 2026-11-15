@@ -101,8 +101,15 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     /** Sets the three bar labels; an empty label hides that slot (the key then does nothing visible). */
-    fun setSoftKeys(left: String, center: String, right: String) =
-        bindBar(findViewById(R.id.softBar), tr(left), tr(center), tr(right))
+    fun setSoftKeys(left: String, center: String, right: String) {
+        val bar = findViewById<View>(R.id.softBar)
+        bindBar(bar, tr(left), tr(center), tr(right))
+        // Touch phones: tapping a label does what its key does (D-pad/keys are unchanged).
+        bindBarTaps(bar,
+            left = if (left.isEmpty()) null else ({ onLeftSoft() }),
+            center = if (center.isEmpty()) null else ({ pressKey(this::dispatchKeyEvent, KeyEvent.KEYCODE_DPAD_CENTER) }),
+            right = if (right.isEmpty()) null else ({ onRightSoft() }))
+    }
 
     open fun onLeftSoft() {}
     open fun onRightSoft() { finish() }
@@ -183,6 +190,26 @@ abstract class BaseActivity : AppCompatActivity() {
                 pin(android.view.Gravity.CENTER_HORIZONTAL)
                 visibility = if (center.isEmpty()) View.INVISIBLE else View.VISIBLE
             }
+        }
+
+        /**
+         * Touch support for the soft-key bar: a tap on a label runs [left]/[center]/[right]; null = no tap.
+         * The labels never take focus, so D-pad focus and the look of the bar are unchanged.
+         */
+        fun bindBarTaps(bar: View, left: (() -> Unit)?, center: (() -> Unit)?, right: (() -> Unit)?) {
+            fun wire(id: Int, f: (() -> Unit)?) = bar.findViewById<View>(id).apply {
+                if (f == null) { setOnClickListener(null); isClickable = false } else setOnClickListener { f() }
+                isFocusable = false
+                importantForAccessibility = if (f == null) View.IMPORTANT_FOR_ACCESSIBILITY_NO else View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            }
+            wire(R.id.skLeft, left); wire(R.id.skCenter, center); wire(R.id.skRight, right)
+        }
+
+        /** Sends one fresh key press (DOWN + UP, new downTime) through [dispatch], as if the key was pressed now. */
+        fun pressKey(dispatch: (KeyEvent) -> Boolean, code: Int) {
+            val t = android.os.SystemClock.uptimeMillis() + 1 // strictly after any screen start time
+            dispatch(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0))
+            dispatch(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0))
         }
     }
 }

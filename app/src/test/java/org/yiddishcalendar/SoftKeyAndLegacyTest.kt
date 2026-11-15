@@ -166,7 +166,7 @@ class SoftKeyAndLegacyTest {
     // ---- LG Exalt (Android 6.0.1 = API 23) ----
     @Test fun minSdkCoversLgExaltAndLintHasNoNewApi() {
         assertTrue("minSdk ${ctx.applicationInfo.minSdkVersion}", ctx.applicationInfo.minSdkVersion <= 23)
-        assertEquals(8, BuildConfig.VERSION_CODE); assertEquals("0.2.3", BuildConfig.VERSION_NAME)
+        assertEquals(9, BuildConfig.VERSION_CODE); assertEquals("0.2.4", BuildConfig.VERSION_NAME)
         for (f in listOf("build/reports/lint-results-debug.xml", "../calendarlib/build/reports/lint-results-debug.xml")) {
             val x = File(f)
             if (x.exists()) assertFalse("$f has NewApi", x.readText().contains("id=\"NewApi\""))

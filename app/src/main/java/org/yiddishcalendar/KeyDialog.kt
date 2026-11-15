@@ -65,9 +65,21 @@ class KeyDialog(private val act: BaseActivity) :
         window?.decorView?.applyUiDir(act.prefs.rtlGrid)
         findViewById<View>(R.id.softBar)?.layoutDirection = View.LAYOUT_DIRECTION_LTR
         // Cap the list so a long pick list scrolls, while short menus wrap tightly above the bar.
-        val screen = act.resources.displayMetrics.heightPixels
-        findViewById<MaxHeightScrollView>(R.id.dlgScroll).maxHeightPx =
-            screen - act.dp(30f + 48f + 16f)
+        // First guess from the display, then the exact room once the window is laid out (status bar, small or
+        // landscape screens): everything above the soft-key bar minus a small top gap, title and card padding.
+        val scrollView = findViewById<MaxHeightScrollView>(R.id.dlgScroll)
+        scrollView.maxHeightPx = act.resources.displayMetrics.heightPixels - act.dp(30f + 48f + 16f)
+        val root = findViewById<View>(R.id.card).parent as View
+        root.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
+            val card = findViewById<View>(R.id.card)
+            val bar = findViewById<View>(R.id.softBar)
+            val titleView = findViewById<View>(R.id.dlgTitle)
+            val titleH = if (titleView.visibility == View.VISIBLE) titleView.height else 0
+            val cardLp = card.layoutParams as ViewGroup.MarginLayoutParams
+            val room = (bottom - top) - bar.height - cardLp.bottomMargin - act.dp(4f) -
+                card.paddingTop - card.paddingBottom - titleH
+            if (room > 0 && room != scrollView.maxHeightPx) scrollView.post { scrollView.maxHeightPx = room }
+        }
         val p = act.palette
         findViewById<TextView>(R.id.dlgTitle).apply { text = title; visibility = if (title.isEmpty()) View.GONE else View.VISIBLE; applyBidi() }
         val body = findViewById<LinearLayout>(R.id.dlgBody)
@@ -102,11 +114,12 @@ class KeyDialog(private val act: BaseActivity) :
                 gravity = Gravity.CENTER_VERTICAL
                 setBackgroundResource(R.drawable.row_bg)
                 isFocusable = true; isClickable = true
-                minimumHeight = act.dp(36f)
-                setPadding(act.dp(10f), act.dp(4f), act.dp(10f), act.dp(4f))
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { it.topMargin = act.dp(2f) }
+                minimumHeight = act.dp(32f)
+                setPadding(act.dp(10f), act.dp(6f), act.dp(10f), act.dp(6f))
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).also { if (i > 0) it.topMargin = act.dp(2f) }
                 if (checked >= 0) addView(AppCompatTextView(act).apply {
                     text = if (i == checked) "●" else "○"; textSize = 16f; setTextColor(if (i == checked) p.text else p.sub)
+                    includeFontPadding = false
                     setPaddingRelative(0, 0, act.dp(8f), 0)
                 })
                 addView(LinearLayout(act).apply {
@@ -114,15 +127,17 @@ class KeyDialog(private val act: BaseActivity) :
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                     addView(AppCompatTextView(act).apply {
                         text = label; textSize = 15f; setTextColor(p.text); setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        includeFontPadding = false // the Hebrew font's extra line padding made every item tall
                         applyBidi()
                     })
                     itemNotes.getOrNull(i)?.takeIf { it.isNotEmpty() }?.let { n ->
-                        addView(AppCompatTextView(act).apply { text = n; textSize = 11f; setTextColor(p.sub); applyBidi() })
+                        addView(AppCompatTextView(act).apply { text = n; textSize = 11f; setTextColor(p.sub); includeFontPadding = false; setPadding(0, act.dp(2f), 0, 0); applyBidi() })
                     }
                 })
                 // Item number in its own small column with a gap, so it never touches a left-aligned English label.
                 if (i < 9 && checked < 0) addView(AppCompatTextView(act).apply {
                     text = (i + 1).toString(); textSize = 12f; setTextColor(p.sub); gravity = Gravity.CENTER
+                    includeFontPadding = false
                     layoutParams = LinearLayout.LayoutParams(act.dp(16f), ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = act.dp(8f) }
                 })
                 setOnClickListener { dismiss(); action() }
@@ -164,6 +179,11 @@ class KeyDialog(private val act: BaseActivity) :
             else -> ""
         }
         BaseActivity.bindBar(findViewById(R.id.softBar), leftLabel, center, right)
+        // Touch: tapping a bar label = pressing its key (same code path as the keys).
+        BaseActivity.bindBarTaps(findViewById(R.id.softBar),
+            left = if (leftLabel.isEmpty()) null else ({ BaseActivity.pressKey(this::dispatchKeyEvent, KeyEvent.KEYCODE_SOFT_LEFT) }),
+            center = if (center.isEmpty()) null else ({ BaseActivity.pressKey(this::dispatchKeyEvent, KeyEvent.KEYCODE_DPAD_CENTER) }),
+            right = { BaseActivity.pressKey(this::dispatchKeyEvent, KeyEvent.KEYCODE_SOFT_RIGHT) })
         (input ?: body.getChildAt(paras.size + lines.size + checked.coerceAtLeast(0)))?.requestFocus()
     }
 

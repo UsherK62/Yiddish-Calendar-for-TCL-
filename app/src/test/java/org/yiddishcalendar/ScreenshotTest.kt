@@ -105,4 +105,62 @@ class ScreenshotTest {
         (a.findViewById<android.view.View>(R.id.scroll) as? android.widget.ScrollView)?.scrollTo(0, 10_000)
         shoot(a.window.decorView.rootView, "about_bottom_light")
     }
+
+    // ---- 0.2.4 round 2 ----
+    private fun key(dispatch: (android.view.KeyEvent) -> Boolean, code: Int) {
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(40))
+        val t = android.os.SystemClock.uptimeMillis()
+        dispatch(android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_DOWN, code, 0))
+        dispatch(android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_UP, code, 0))
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+    private fun addTrip() {
+        ctx().deleteDatabase("local_events.db")
+        EventRepository(ctx(), Prefs(ctx())).add("Trip to Monsey", LocalDate.of(2027, 1, 25), null, Repeat.NEVER, null, days = 3)
+    }
+    @Test fun addEventDaysPopup() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(EditEventActivity::class.java, Intent(ctx(), EditEventActivity::class.java).putExtra(EditEventActivity.EXTRA_DATE, LocalDate.of(2027, 1, 25).toEpochDay()))
+        // move focus to the Days row (2nd row after the title) and press OK
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_DOWN)
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_DOWN)
+        shoot(a.window.decorView.rootView, "add_event_rows_light")
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_CENTER)
+        val dlg = org.robolectric.shadows.ShadowDialog.getLatestDialog() as KeyDialog
+        key(dlg::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_DOWN)
+        key(dlg::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_DOWN)
+        shoot(a.window.decorView.rootView, "add_event_days_popup_light", dlg.window!!.decorView)
+    }
+    @Test fun multiDayInGrid() { assumeTrue(out != null); setPrefs(); addTrip(); main("main_multiday_light", LocalDate.of(2027, 1, 26)) }
+    @Test fun multiDayDay() { assumeTrue(out != null); setPrefs(); addTrip(); day("day_multiday_light", LocalDate.of(2027, 1, 26)) }
+    @Test fun helpLight() { assumeTrue(out != null); setPrefs(); shoot(start(HelpActivity::class.java).window.decorView.rootView, "help_light") }
+    @Test fun helpYiddish() { assumeTrue(out != null); setPrefs(text = 2); shoot(start(HelpActivity::class.java).window.decorView.rootView, "help_yiddish") }
+
+    // ---- 0.2.4 round 3: tight pop-ups ----
+    private fun popupOver(a: android.app.Activity, name: String) {
+        shadowOf(Looper.getMainLooper()).idle(); shadowOf(Looper.getMainLooper()).idle()
+        val dlg = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+        shoot(a.window.decorView.rootView, name, dlg.window!!.decorView)
+    }
+    @Test fun settingsLanguagePopup() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(SettingsActivity::class.java)
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_CENTER)   // Language is the first, focused row
+        popupOver(a, "popup_language_light")
+    }
+    @Test fun addEventRepeatPopup() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(EditEventActivity::class.java)
+        repeat(4) { key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_DOWN) }
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_DPAD_CENTER)
+        popupOver(a, "popup_repeat_light")
+    }
+    @Test fun goToDatePopup() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(MainActivity::class.java, Intent(ctx(), MainActivity::class.java).putExtra(MainActivity.EXTRA_TEST_DATE, LocalDate.of(2027, 1, 21).toEpochDay()))
+        key(a::dispatchKeyEvent, android.view.KeyEvent.KEYCODE_STAR)
+        popupOver(a, "popup_gotodate_light")
+    }
+    @Test @Config(qualifiers = "w400dp-h240dp-land-xhdpi") fun menuSmallLandscape() { assumeTrue(out != null); setPrefs(); menu("popup_menu_400x240") }
+    @Test @Config(qualifiers = "w240dp-h400dp-port-xhdpi") fun menuLgExalt() { assumeTrue(out != null); setPrefs(); menu("popup_menu_240x400") }
 }

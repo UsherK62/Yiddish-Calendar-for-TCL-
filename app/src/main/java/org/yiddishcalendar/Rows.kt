@@ -8,32 +8,25 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * A form row that changes its value with the D-pad: Left = previous, Right or OK = next.
- * Label small + value large. [extraKeys] lets a row use number keys (e.g. 1/3 = hour).
- * Shows ‹ › only while focused. Used on the add-event form, not in Settings.
+ * One form row (New event): small label, the value under it, NO arrows. OK or a tap opens [open]
+ * (a pop-up sized to its contents). D-pad up/down moves between rows as before.
  */
-class ChoiceRow(
+class PickRow(
     private val act: BaseActivity,
     private val title: String,
     private val value: () -> String,
-    private val prev: () -> Unit,
-    private val next: () -> Unit,
-    val hint: String = "◀ ▶ or OK to change",
-    private val extraKeys: ((Int) -> Boolean)? = null,
-    private val onChanged: () -> Unit = {},
+    val hint: String = "OK to choose",
+    private val open: () -> Unit,
 ) {
     var onFocus: ((Boolean) -> Unit)? = null
     private val titleView: TextView
     private val valueView: TextView
-    private val arrows: TextView
     val view: LinearLayout = LinearLayout(act).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
+        orientation = LinearLayout.VERTICAL
         minimumHeight = act.dp(48f)
         isFocusable = true
         isClickable = true
@@ -44,10 +37,6 @@ class ChoiceRow(
     }
 
     init {
-        val col = LinearLayout(act).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
         titleView = AppCompatTextView(act).apply {
             text = act.tr(title)
             textSize = 10f
@@ -63,22 +52,15 @@ class ChoiceRow(
             ellipsize = TextUtils.TruncateAt.END
             applyBidi()
         }
-        col.addView(titleView); col.addView(valueView)
-        arrows = AppCompatTextView(act).apply { text = "‹ ›"; textSize = 16f; visibility = View.INVISIBLE; textDirection = View.TEXT_DIRECTION_LTR }
-        view.addView(col); view.addView(arrows)
-        view.setOnFocusChangeListener { _, has ->
-            arrows.visibility = if (has) View.VISIBLE else View.INVISIBLE
-            paint()
-            onFocus?.invoke(has)
-        }
+        view.addView(titleView); view.addView(valueView)
+        view.setOnFocusChangeListener { _, has -> paint(); onFocus?.invoke(has) }
+        view.setOnClickListener { open() }
+        var centerDown = false
         view.setOnKeyListener { _, code, ev ->
-            if (ev.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-            when {
-                extraKeys?.invoke(code) == true -> { refresh(); onChanged(); true }
-                code == KeyEvent.KEYCODE_DPAD_LEFT -> { prev(); refresh(); onChanged(); true }
-                code == KeyEvent.KEYCODE_DPAD_RIGHT || SoftKeys.isCenter(code) -> { next(); refresh(); onChanged(); true }
-                else -> false
-            }
+            if (!SoftKeys.isCenter(code)) return@setOnKeyListener false
+            if (ev.action == KeyEvent.ACTION_DOWN && ev.repeatCount == 0) centerDown = true
+            if (ev.action == KeyEvent.ACTION_UP && centerDown) { centerDown = false; open() }
+            true
         }
         refresh()
         paint()
@@ -90,7 +72,6 @@ class ChoiceRow(
         val p = act.palette
         titleView.setTextColor(p.sub)
         valueView.setTextColor(p.text)
-        arrows.setTextColor(p.text)
     }
 }
 
@@ -103,7 +84,7 @@ fun <T> List<T>.after(cur: T, step: Int): T {
 /**
  * One Settings row inside a section card. Reading side (right in RTL): the title, and under it the
  * current value or a short note, so every row fits a 240dp screen without wrapping. Far side (left
- * in RTL): an ON/OFF switch for two-choice settings, or a chevron for pick lists / pages.
+ * in RTL): an ON/OFF switch for two-choice settings; pick lists / pages have no arrow.
  * Only OK/center acts. No Left/Right cycling.
  */
 class SettingRow(
@@ -122,7 +103,6 @@ class SettingRow(
     private val note = act.tr(note)
     private val switchView: View
     private var rowRtl = UiDir.rtl
-    private val chevronView: ImageView
     val view: LinearLayout = LinearLayout(act).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -162,20 +142,13 @@ class SettingRow(
             layoutParams = LinearLayout.LayoutParams(act.dp(34f), act.dp(20f)).also { it.marginStart = act.dp(10f) }
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
-        chevronView = ImageView(act).apply {
-            setImageResource(R.drawable.ic_chevron)
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            layoutParams = LinearLayout.LayoutParams(act.dp(16f), act.dp(16f)).also { it.marginStart = act.dp(8f) }
-        }
         // The switch / chevron comes AFTER the words. English label -> row runs left-to-right, label on
         // the left and switch at the right end; Hebrew/Yiddish label (Everything mode) -> mirrored.
-        // Pick-list/page rows do the same: the chevron comes after the words, pointing ">" for English
-        // (ic_chevron is auto-mirrored, so it points "<" at the left end of a Yiddish row).
+        // Pick-list/page rows have NO arrow (0.2.4): OK or a tap opens the pop-up / page.
         rowRtl = startsRtl(titleView.text)
         view.layoutDirection = if (rowRtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         view.addView(col)
         view.addView(switchView)
-        view.addView(chevronView)
         view.setOnFocusChangeListener { _, has ->
             paint()
             onFocus?.invoke(has)
@@ -204,8 +177,6 @@ class SettingRow(
         }
         subView.text = sub
         subView.visibility = if (sub.isEmpty()) View.GONE else View.VISIBLE
-        chevronView.visibility = if (kind == Kind.TOGGLE) View.GONE else View.VISIBLE
-        chevronView.setColorFilter(p.sub)
         switchView.visibility = if (kind == Kind.TOGGLE) View.VISIBLE else View.GONE
         if (kind == Kind.TOGGLE) {
             val on = isOn()

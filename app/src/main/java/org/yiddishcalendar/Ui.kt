@@ -34,6 +34,8 @@ object Ui {
         "Less" to "ווייניגער", "More" to "מער", "Everything" to "אלעס",
         "Right-to-left" to "רעכטס צו לינקס", "Left-to-right" to "לינקס צו רעכטס",
         "Dark theme" to "טונקלע פארבן",
+        // 0.2.4
+        "Help" to "הילף", "Days" to "טעג", "OK to choose" to "OK צו קלייבן", "Type" to "שרייב",
     )
 
     fun tr(level: Int, s: String): String = if (level >= 2) HE[s] ?: s else s

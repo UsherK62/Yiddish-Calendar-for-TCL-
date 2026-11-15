@@ -20,4 +20,12 @@ object EventDates {
         while (day <= last) { out += day; day = day.plusDays(1) }
         return out
     }
+
+    /** First and last civil day an event covers (same day for a normal event). */
+    fun span(start: Long, end: Long, allDay: Boolean, zone: ZoneId): Pair<LocalDate, LocalDate> {
+        val eventZone = if (allDay) ZoneOffset.UTC else zone
+        val first = Instant.ofEpochMilli(start).atZone(eventZone).toLocalDate()
+        val last = Instant.ofEpochMilli(maxOf(start, end - 1)).atZone(eventZone).toLocalDate()
+        return first to last
+    }
 }
