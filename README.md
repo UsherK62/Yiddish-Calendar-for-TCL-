@@ -66,6 +66,6 @@ Hebrew dates, Hebrew month names, parsha names, and the short holiday labels sta
 
 Copyright (C) 2026 Yidtech-101.
 
-This app's own code is GPL-3.0. The full text is in `LICENSE`.
+This app's own code is GPL-2.0-only with an exception for Apache-2.0 libraries (see LICENSE). The full text and the exception are in `LICENSE`.
 
 The bundled libraries keep their own licenses. kizitonwose/Calendar stays under the MIT license in `Calendar/`. KosherJava stays under the LGPL, as listed in `THIRD_PARTY_LICENSES.md` and `licenses/`.

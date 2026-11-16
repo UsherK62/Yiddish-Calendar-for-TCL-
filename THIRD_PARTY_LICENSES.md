@@ -1,6 +1,14 @@
 # Third-party licenses
 
-This project includes or depends on the works below. The app's own code is GPL-3.0; see `LICENSE`.
+This project includes or depends on the works below. The app's own code is GPL-2.0-only (GNU General Public License, version 2 only) with an exception for Apache-2.0 libraries; see `LICENSE`.
+
+License compatibility with GPL-2.0-only:
+
+- **kizitonwose Calendar (MIT):** compatible. MIT code may be combined with GPL-2.0 code; its copyright notice and license text are kept below and in `Calendar/LICENSE.md`.
+- **KosherJava Zmanim (LGPL 2.1):** compatible. The library is used unmodified as a normal dependency, which LGPL 2.1 allows in a work under any license; section 3 of LGPL 2.1 also allows its code to be used under GPL version 2.
+- **Noto Sans Hebrew (SIL OFL 1.1):** the font is bundled as a separate font file and stays under the OFL.
+- **AndroidX (AppCompat, Core) and the Kotlin standard library (Apache License 2.0):** allowed by the additional permission in `LICENSE`, which lets this program be linked with Apache-2.0 libraries and distributed together with them. These libraries keep their own Apache 2.0 license.
+- **GeoNames US postal code data (CC BY 4.0):** data, not code, kept under its own license with credit; see below.
 
 ## kizitonwose Calendar (MIT)
 
@@ -542,3 +550,7 @@ The Regular and Bold faces are bundled in `app/src/main/res/font/`.
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/hebrew)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1. The full license text is in `licenses/OFL.txt`.
+
+## GeoNames US postal code data (Creative Commons Attribution 4.0)
+
+`app/src/main/assets/us_zip.csv` is derived from the [GeoNames](https://www.geonames.org) US postal code dump and is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Credit: GeoNames, www.geonames.org. The About screen credits GeoNames. Details of the source and the changes are in `licenses/GEONAMES-US-ZIP.txt`.
