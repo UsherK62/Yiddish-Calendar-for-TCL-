@@ -33,6 +33,9 @@ class KeyDialog(private val act: BaseActivity) :
 
     fun title(t: String) = apply { title = act.tr(t) }
     fun item(label: String, action: () -> Unit) = apply { items += act.tr(label) to action }
+    private var anchorLeft = false
+    /** Options menu: open in the bottom-LEFT corner right above the Menu (left soft) key, sized to its items. */
+    fun anchorBottomLeft() = apply { anchorLeft = true }
     /** Index of the item that is the current choice (pick list): radio dot ● on it, ○ on the others, focus starts there. -1 = plain menu. */
     private var checked = -1
     private var itemNotes: List<String> = emptyList()
@@ -65,6 +68,16 @@ class KeyDialog(private val act: BaseActivity) :
         window?.decorView?.applyUiDir(act.prefs.rtlGrid)
         findViewById<View>(R.id.softBar)?.layoutDirection = View.LAYOUT_DIRECTION_LTR
         // Cap the list so a long pick list scrolls, while short menus wrap tightly above the bar.
+        if (anchorLeft) {
+            // Physical left (the Menu key is always the left key), whatever the text direction.
+            val card = findViewById<LinearLayout>(R.id.card)
+            card.minimumWidth = 0
+            (card.layoutParams as LinearLayout.LayoutParams).apply {
+                gravity = Gravity.LEFT
+                marginStart = act.dp(2f); marginEnd = act.dp(2f); leftMargin = act.dp(2f); rightMargin = act.dp(2f)
+                bottomMargin = act.dp(2f)
+            }
+        }
         // First guess from the display, then the exact room once the window is laid out (status bar, small or
         // landscape screens): everything above the soft-key bar minus a small top gap, title and card padding.
         val scrollView = findViewById<MaxHeightScrollView>(R.id.dlgScroll)

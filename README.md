@@ -4,12 +4,12 @@ A Hebrew calendar for Yiddish-speaking users, made for keypad flip phones such a
 
 There are no ads, and the app does not use the internet. It only asks for calendar permission, so it can read and write events.
 
-This is version 0.2.4 (package `com.yiddishcalendar.app`). It runs on Android 5.0 and up, and it targets Android 11.
+This is version 0.2.5 (package `com.yiddishcalendar.app`). It runs on Android 5.0 and up, and it targets Android 11.
 
 ## Features
 
 - The month grid reads right to left, with Sunday on the right. Settings can switch the grid to left to right.
-- Hebrew dates are written in Hebrew letters. Hebrew months are the usual view: a large Hebrew day and a small Gregorian day. Gregorian months put the Gregorian day first.
+- Hebrew dates are written in Hebrew letters. Hebrew months are the usual view: a large Hebrew day and a small Gregorian day. Gregorian months put the Gregorian day first. Switch between them with # or with Settings → Hebrew months.
 - On Shabbos the screen shows the weekly parsha (שבת פרשת) when Show parsha is on. Saturday is labeled שבת, and an ordinary Friday is called ערב שבת.
 - Yom Tov, Chol Hamoed, fasts, Chanukah, Purim, and Rosh Chodesh have a short Hebrew label on the grid, such as פסח, ר״ה, or ר״ח. Open the day to see the full Yom Tov, Rosh Chodesh, or special Shabbos name. Shabbos, Yom Tov, and Rosh Chodesh days are tinted.
 - The day screen also shows Daf Yomi (Bavli) and the Omer count when they apply.
@@ -25,7 +25,7 @@ Screens stay in portrait and are laid out for a small keypad phone, about 240×3
 
 Move with the D-pad. The left soft key is the menu: the phone may send it as the left soft key, Menu, or F1, including on TCL phones and some Kyocera and LG phones. The right soft key is Add on the month screen and Back on other screens (right soft key or F2, including TCL and Sonim XP3).
 
-A touchscreen is optional. Tap a day to select it, and tap it again to open it. Swipe sideways to change the month. Tap the words on the bottom bar to use them like the soft keys.
+A touchscreen is optional. Tap a day to select it, and tap it again to open it. Swipe up for the next month and down for the previous month. Tap the words on the bottom bar to use them like the soft keys.
 
 ## Keys
 
@@ -38,7 +38,7 @@ On the month screen:
 - **0** jumps to today.
 - **\*** goes to a date. Type it as MMDDYYYY.
 - **#** switches between Hebrew months and Gregorian months.
-- The **left soft key** opens the menu: Today, Go to date, Add event, Settings, Help.
+- The **left soft key** opens the menu in the bottom-left corner: Today, Go to date, Add event, Settings, Help. Press a number, or move to an item and press OK, or tap it.
 - The **right soft key** starts a new event.
 - **Back** leaves the screen.
 

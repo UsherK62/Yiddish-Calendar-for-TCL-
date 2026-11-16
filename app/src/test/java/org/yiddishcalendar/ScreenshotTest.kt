@@ -79,6 +79,16 @@ class ScreenshotTest {
 
     @Test fun dayShabbosLight() { assumeTrue(out != null); setPrefs(); day("day_light", LocalDate.of(2027, 1, 23)) }
     @Test fun settingsLight() { assumeTrue(out != null); setPrefs(); shoot(start(SettingsActivity::class.java).window.decorView.rootView, "settings_top_light") }
+    @Test fun settingsHebrewMonthsRow() {
+        assumeTrue(out != null); setPrefs()
+        val a = start(SettingsActivity::class.java)
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().setInTouchMode(false)
+        fun all(v: View): List<View> = if (v is android.view.ViewGroup) listOf(v) + (0 until v.childCount).flatMap { all(v.getChildAt(it)) } else listOf(v)
+        val row = all(a.window.decorView).first { r -> r.isFocusable && r is android.view.ViewGroup &&
+            all(r).any { it is android.widget.TextView && it.text.toString() == "Hebrew months" } }
+        row.requestFocus(); shadowOf(Looper.getMainLooper()).idle()
+        shoot(a.window.decorView.rootView, "settings_hebrew_months")
+    }
     @Test fun aboutLight() { assumeTrue(out != null); setPrefs(); shoot(start(AboutActivity::class.java).window.decorView.rootView, "about_light") }
     @Test fun menuLight() { assumeTrue(out != null); setPrefs(); menu("menu_light") }
     @Test fun monthHebrewDark() { assumeTrue(out != null); setPrefs(theme = 0); main("main_hebrew_dark", LocalDate.of(2027, 1, 21)) }

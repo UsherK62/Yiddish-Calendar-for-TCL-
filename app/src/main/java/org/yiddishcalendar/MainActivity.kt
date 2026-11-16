@@ -243,6 +243,7 @@ class MainActivity : BaseActivity() {
 
     override fun onLeftSoft() {
         KeyDialog(this) // no title strip: the numbered list is self-explanatory
+            .anchorBottomLeft() // like a normal options menu: bottom-left, right above the Menu key
             .item("Today") { moveTo(today) }
             .item("Go to date") { goToDate() }
             .item("Add event") { onRightSoft() }
@@ -290,35 +291,30 @@ class MainActivity : BaseActivity() {
     }
 
     /**
-     * Touch: a sideways swipe on the grid changes month through moveTo() (the same path as keys 4/6), so the
-     * header, selection and dots stay in step. The grid itself never scrolls by finger; taps still reach cells.
-     * Direction follows what is seen, like the keys: in the right-to-left grid the next month is to the left.
+     * Touch: swipe UP on the grid = next month, swipe DOWN = previous month, through moveTo() (the same path as
+     * keys 4/6), so the header, selection and dots stay in step and only the grid animates. Sideways swipes do
+     * nothing (they are caught here so the grid never scrolls by finger). Taps still reach the day cells.
      */
     private fun installSwipe() {
         val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop
         cv.addOnItemTouchListener(object : androidx.recyclerview.widget.RecyclerView.SimpleOnItemTouchListener() {
-            var x0 = 0f; var y0 = 0f; var swiping = false
+            var x0 = 0f; var y0 = 0f; var dragging = false
             override fun onInterceptTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent): Boolean {
                 when (e.actionMasked) {
-                    android.view.MotionEvent.ACTION_DOWN -> { x0 = e.x; y0 = e.y; swiping = false }
-                    android.view.MotionEvent.ACTION_MOVE -> {
-                        val dx = e.x - x0; val dy = e.y - y0
-                        if (!swiping && kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > kotlin.math.abs(dy)) swiping = true
-                    }
+                    android.view.MotionEvent.ACTION_DOWN -> { x0 = e.x; y0 = e.y; dragging = false }
+                    android.view.MotionEvent.ACTION_MOVE ->
+                        if (!dragging && kotlin.math.hypot(e.x - x0, e.y - y0) > slop) dragging = true
                 }
-                return swiping
+                return dragging
             }
             override fun onTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent) {
                 if (e.actionMasked == android.view.MotionEvent.ACTION_UP) {
-                    val dx = e.x - x0
-                    if (kotlin.math.abs(dx) > dp(30f)) {
-                        // Finger moves right = bring in the page on the left.
-                        val leftPageIsNext = prefs.rtlGrid
-                        val step = if ((dx > 0) == leftPageIsNext) 1 else -1
-                        moveTo(pages.addMonths(selected, step))
+                    val dx = e.x - x0; val dy = e.y - y0
+                    if (kotlin.math.abs(dy) > dp(30f) && kotlin.math.abs(dy) > kotlin.math.abs(dx)) {
+                        moveTo(pages.addMonths(selected, if (dy < 0) 1 else -1))
                     }
                 }
-                if (e.actionMasked == android.view.MotionEvent.ACTION_UP || e.actionMasked == android.view.MotionEvent.ACTION_CANCEL) swiping = false
+                if (e.actionMasked == android.view.MotionEvent.ACTION_UP || e.actionMasked == android.view.MotionEvent.ACTION_CANCEL) dragging = false
             }
         })
     }

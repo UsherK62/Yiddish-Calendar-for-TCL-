@@ -155,6 +155,6 @@ class FixesTest {
                 assertTrue("switch must be right of the label", row.getChildAt(1).left >= row.getChildAt(0).right)
             }
         }
-        assertEquals(5, toggles) // Dark theme, Right-to-left, In Israel, Date at nightfall, Show parsha
+        assertEquals(6, toggles) // Dark theme, Right-to-left, Hebrew months, In Israel, Date at nightfall, Show parsha
     }
 }

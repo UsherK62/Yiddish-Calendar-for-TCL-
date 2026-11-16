@@ -35,6 +35,8 @@ object Ui {
         "Right-to-left" to "רעכטס צו לינקס", "Left-to-right" to "לינקס צו רעכטס",
         "Dark theme" to "טונקלע פארבן",
         // 0.2.4
+        "Hebrew months" to "אידישע חדשים", "Off: Gregorian months" to "אויס: ענגלישע חדשים",
+        "Gregorian months" to "ענגלישע חדשים",
         "Help" to "הילף", "Days" to "טעג", "OK to choose" to "OK צו קלייבן", "Type" to "שרייב",
     )
 

@@ -128,19 +128,47 @@ class TouchTest {
         assertFalse(target.isFocusable)
     }
 
-    @Test fun swipeChangesMonthLikeKeys() {
-        val a = main(); val root = a.window.decorView
-        val cal = a.findViewById<View>(R.id.calendar)
-        val h0 = a.findViewById<TextView>(R.id.headerTitle).text.toString()
-        swipe(root, cal, a.dp(80f).toFloat())   // finger right = page on the left = next month in RTL
-        val h1 = a.findViewById<TextView>(R.id.headerTitle).text.toString()
-        assertNotEquals(h0, h1)
-        // same as key 4 from the start
-        val b = main()
+    private fun swipeV(root: View, v: View, dyPx: Float) {
+        val loc = IntArray(2); v.getLocationInWindow(loc)
+        val x = loc[0] + v.width / 2f; val y = loc[1] + v.height / 2f
         val t = SystemClock.uptimeMillis()
-        b.dispatchKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_4, 0)); idle()
-        assertEquals(h1, b.findViewById<TextView>(R.id.headerTitle).text.toString())
-        assertNull("a swipe never opens a day", started(a))
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x, y, 0))
+        for (i in 1..5) root.dispatchTouchEvent(MotionEvent.obtain(t, t + i * 10L, MotionEvent.ACTION_MOVE, x, y + dyPx * i / 5, 0))
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t + 70, MotionEvent.ACTION_UP, x, y + dyPx, 0))
+        ShadowSystemClock.advanceBy(Duration.ofMillis(80)); idle()
+    }
+    private fun header(a: Activity) = a.findViewById<TextView>(R.id.headerTitle).text.toString()
+    private fun keyMonth(next: Boolean): String {
+        // the month keys are unchanged: in the right-to-left grid 4 = next month, 6 = previous month
+        val b = main(); val t = SystemClock.uptimeMillis()
+        b.dispatchKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, if (next) KeyEvent.KEYCODE_4 else KeyEvent.KEYCODE_6, 0)); idle()
+        return header(b)
+    }
+
+    @Test fun swipeUpIsNextMonthAndDownIsPrevious() {
+        val up = main(); val cal = up.findViewById<View>(R.id.calendar)
+        val h0 = header(up)
+        val fixed = listOf(R.id.header, R.id.weekdays, R.id.statusTitle, R.id.softBar).map { up.findViewById<View>(it) }
+        val before = fixed.map { v -> IntArray(2).also { v.getLocationInWindow(it) }.toList() }
+        swipeV(up.window.decorView, cal, -up.dp(80f).toFloat())
+        assertNotEquals(h0, header(up))
+        assertEquals("swipe up = next month", keyMonth(next = true), header(up))
+        assertEquals("only the grid moves", before, fixed.map { v -> IntArray(2).also { v.getLocationInWindow(it) }.toList() })
+        assertNull("a swipe never opens a day", started(up))
+        val down = main()
+        swipeV(down.window.decorView, down.findViewById(R.id.calendar), down.dp(80f).toFloat())
+        assertEquals("swipe down = previous month", keyMonth(next = false), header(down))
+    }
+
+    @Test fun sidewaysSwipeDoesNothing() {
+        for (dx in listOf(80f, -80f)) {
+            val a = main(); val h0 = header(a)
+            val status0 = a.findViewById<TextView>(R.id.statusTitle).text.toString()
+            swipe(a.window.decorView, a.findViewById(R.id.calendar), a.dp(dx).toFloat())
+            assertEquals(h0, header(a))
+            assertEquals(status0, a.findViewById<TextView>(R.id.statusTitle).text.toString())
+            assertNull(started(a))
+        }
     }
 
     @Test fun editEventRowsOpenPopUpsByTap() {
