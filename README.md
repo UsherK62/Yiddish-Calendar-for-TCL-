@@ -62,4 +62,10 @@ Hebrew dates, Hebrew month names, parsha names, and the short holiday labels sta
 - [KosherJava Zmanim](https://github.com/KosherJava/zmanim) (LGPL 2.1)
 - [Noto Sans Hebrew](https://github.com/notofonts/hebrew) (SIL Open Font License 1.1)
 
-See `LICENSE` for this app's MIT license and `THIRD_PARTY_LICENSES.md` for third-party terms.
+## License
+
+Copyright (C) 2026 Yidtech-101.
+
+This app's own code is GPL-3.0. The full text is in `LICENSE`.
+
+The bundled libraries keep their own licenses. kizitonwose/Calendar stays under the MIT license in `Calendar/`. KosherJava stays under the LGPL, as listed in `THIRD_PARTY_LICENSES.md` and `licenses/`.

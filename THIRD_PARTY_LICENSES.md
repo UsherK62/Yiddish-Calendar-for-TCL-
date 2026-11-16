@@ -1,6 +1,6 @@
 # Third-party licenses
 
-This project includes or depends on the works below. The app's own code is MIT; see `LICENSE`.
+This project includes or depends on the works below. The app's own code is GPL-3.0; see `LICENSE`.
 
 ## kizitonwose Calendar (MIT)
 
