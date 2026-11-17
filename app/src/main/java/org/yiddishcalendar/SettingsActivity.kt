@@ -46,7 +46,11 @@ class SettingsActivity : BaseActivity() {
 
         section(rows, "Calendar") { card ->
             // Same as the # key on the month screen (touch-only phones have no # key). ON = Hebrew (Yiddish) months.
-            toggle(card, "Hebrew months", { prefs.hebrewMonths }, note = "Off: Gregorian months") { prefs.hebrewMonths = !prefs.hebrewMonths }
+            // Relabel: flipping months also flips right-to-left, so the whole screen has to rebuild.
+            toggle(card, "Hebrew months", { prefs.hebrewMonths }, note = "Off: Gregorian months") {
+                prefs.applyHebrewMonths(!prefs.hebrewMonths)
+                relabel()
+            }
             toggle(card, "In Israel", { prefs.inIsrael }) { prefs.inIsrael = !prefs.inIsrael }
             toggle(
                 card, "Date at nightfall", { prefs.nightfall },

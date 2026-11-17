@@ -67,7 +67,9 @@ class Release025Test {
         assertTrue("no arrows", texts(s.window.decorView).none { t -> t.any { it in "<>‹›" } })
         row.requestFocus(); press(s::dispatchKeyEvent, KeyEvent.KEYCODE_DPAD_CENTER)
         assertFalse("OK -> Gregorian", Prefs(ctx).hebrewMonths)
-        tap(s.window.decorView, row)
+        // 0.2.6: flipping months also flips RTL, so Settings rebuilds; tap the new instance.
+        val s2 = Robolectric.buildActivity(SettingsActivity::class.java).setup().get(); idle()
+        tap(s2.window.decorView, monthsRow(s2))
         assertTrue("tap -> Hebrew again", Prefs(ctx).hebrewMonths)
     }
 

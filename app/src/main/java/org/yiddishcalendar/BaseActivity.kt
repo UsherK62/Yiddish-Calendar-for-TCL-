@@ -135,6 +135,9 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && SoftKeys.isCenter(code)) {
+            flashSoftKey(R.id.skCenter)
+        }
         if (!SoftKeys.isSoft(code)) return super.dispatchKeyEvent(event)
         when (event.action) {
             KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0 && softDowns.add(code)) fireSoft(code)
@@ -147,10 +150,18 @@ abstract class BaseActivity : AppCompatActivity() {
     // downTime <= 0: some phones synthesise a lone UP with no down time; it can't be a leftover press.
     fun startedHere(event: KeyEvent) = resumedAt > 0 && (event.downTime <= 0 || event.downTime > resumedAt)
 
-    private fun fireSoft(code: Int) = when {
-        SoftKeys.isLeft(code) -> onLeftSoft()
-        SoftKeys.isRight(code) -> onRightSoft()
-        else -> onBackKey()
+    private fun fireSoft(code: Int) {
+        when {
+            SoftKeys.isLeft(code) -> { flashSoftKey(R.id.skLeft); onLeftSoft() }
+            SoftKeys.isRight(code) -> { flashSoftKey(R.id.skRight); onRightSoft() }
+            else -> { flashSoftKey(R.id.skRight); onBackKey() }
+        }
+    }
+
+    /** Briefly dim the matching soft-key label. Safe to call twice (tap + key) — Motion.pressFlash debounces. */
+    fun flashSoftKey(id: Int) {
+        val v = findViewById<View>(id) ?: return
+        Motion.pressFlash(v, this)
     }
 
     /** "Settings", plus the English word in Yiddish mode so it can always be found (language escape). */
@@ -198,8 +209,23 @@ abstract class BaseActivity : AppCompatActivity() {
          */
         fun bindBarTaps(bar: View, left: (() -> Unit)?, center: (() -> Unit)?, right: (() -> Unit)?) {
             fun wire(id: Int, f: (() -> Unit)?) = bar.findViewById<View>(id).apply {
-                if (f == null) { setOnClickListener(null); isClickable = false } else setOnClickListener { f() }
                 isFocusable = false
+                if (f == null) {
+                    setOnClickListener(null)
+                    isClickable = false
+                    // Keep the centre pill (with ripple) in the layout; clear leftover ripples on the side labels.
+                    if (id != R.id.skCenter) background = null
+                } else {
+                    setOnClickListener { Motion.pressFlash(this, context); f() }
+                    isClickable = true
+                    if (id == R.id.skCenter) {
+                        if (background !is android.graphics.drawable.RippleDrawable) {
+                            background = context.getDrawable(R.drawable.pill_ripple)
+                        }
+                    } else if (background !is android.graphics.drawable.RippleDrawable) {
+                        background = Motion.softKeyRipple(context, resources.displayMetrics.density * 6f)
+                    }
+                }
                 importantForAccessibility = if (f == null) View.IMPORTANT_FOR_ACCESSIBILITY_NO else View.IMPORTANT_FOR_ACCESSIBILITY_YES
             }
             wire(R.id.skLeft, left); wire(R.id.skCenter, center); wire(R.id.skRight, right)

@@ -91,8 +91,9 @@ class FixesTest {
         val a = main()
         assertEquals("שבט תשפ״ז", text(a, R.id.headerTitle))
         key(a, KeyEvent.KEYCODE_POUND)
-        assertEquals("January 2027", text(a, R.id.headerRight))
-        assertTrue(a.findViewById<TextView>(R.id.headerRight).textSize > a.findViewById<TextView>(R.id.headerTitle).textSize)
+        // 0.2.6: # also turns right-to-left off, so the Gregorian month is the start/main title
+        assertEquals("January 2027", text(a, R.id.headerTitle))
+        assertTrue(a.findViewById<TextView>(R.id.headerTitle).textSize > a.findViewById<TextView>(R.id.headerRight).textSize)
         assertTrue(text(a, R.id.statusSub).contains("Thu Jan 21")) // same selected day
         key(a, KeyEvent.KEYCODE_POUND)
         assertEquals("שבט תשפ״ז", text(a, R.id.headerTitle))

@@ -137,7 +137,7 @@ class DayActivity : BaseActivity() {
             isFocusable = true
             isClickable = true
             minimumHeight = dp(44f)
-            setBackgroundResource(R.drawable.tile_bg)
+            setBackgroundResource(R.drawable.tile_bg_ripple)
             setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .also { it.setMargins(dp(10f), dp(3f), dp(10f), 0) }

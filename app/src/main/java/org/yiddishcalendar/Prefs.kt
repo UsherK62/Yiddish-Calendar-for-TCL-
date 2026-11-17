@@ -30,6 +30,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("hebrew_months", true)
         set(v) = sp.edit().putBoolean("hebrew_months", v).apply()
 
+    /**
+     * Switch Hebrew (Yiddish) / Gregorian months the way the user does, with # or the Settings row.
+     * Right-to-left follows this choice. After this, the Right-to-left setting can still be
+     * changed by itself (a manual override) until Hebrew months is switched again.
+     */
+    fun applyHebrewMonths(on: Boolean) {
+        hebrewMonths = on
+        rtlGrid = on
+    }
+
     /** Hebrew date (and "today") changes at nightfall instead of midnight (internal tzeis; see Luach.today). */
     var nightfall: Boolean
         get() = sp.getBoolean("nightfall", true)

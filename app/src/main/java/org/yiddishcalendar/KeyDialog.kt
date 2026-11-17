@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -125,7 +126,7 @@ class KeyDialog(private val act: BaseActivity) :
             body.addView(LinearLayout(act).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setBackgroundResource(R.drawable.row_bg)
+                setBackgroundResource(R.drawable.row_bg_ripple)
                 isFocusable = true; isClickable = true
                 minimumHeight = act.dp(32f)
                 setPadding(act.dp(10f), act.dp(6f), act.dp(10f), act.dp(6f))
@@ -153,7 +154,7 @@ class KeyDialog(private val act: BaseActivity) :
                     includeFontPadding = false
                     layoutParams = LinearLayout.LayoutParams(act.dp(16f), ViewGroup.LayoutParams.WRAP_CONTENT).also { it.marginStart = act.dp(8f) }
                 })
-                setOnClickListener { dismiss(); action() }
+                setOnClickListener { dismissThen { action() } }
             })
         }
 
@@ -201,6 +202,70 @@ class KeyDialog(private val act: BaseActivity) :
     }
 
     private var shownAt = 0L
+    private var closing = false
+
+    override fun show() {
+        closing = false
+        super.show()
+        playEnter()
+    }
+
+    private fun playEnter() {
+        val card = findViewById<View>(R.id.card) ?: return
+        Motion.clear(card)
+        if (!Motion.enabled(act)) return
+        card.alpha = 0f
+        card.scaleX = Motion.POP_SCALE
+        card.scaleY = Motion.POP_SCALE
+        val start = Runnable {
+            if (anchorLeft) {
+                card.pivotX = 0f
+                card.pivotY = card.height.toFloat()
+            } else {
+                card.pivotX = card.width / 2f
+                card.pivotY = card.height / 2f
+            }
+            card.animate()
+                .alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(Motion.duration(act, Motion.SHOW_MS))
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+        if (card.width == 0 || card.height == 0) card.post(start) else start.run()
+    }
+
+    /** Fade and shrink the card, then close. [after] runs once the dialog is gone (next pop-up, a new screen). */
+    fun dismissThen(after: () -> Unit = {}) {
+        if (!isShowing) { after(); return }
+        if (closing) return
+        val card = findViewById<View>(R.id.card)
+        if (card == null || !Motion.enabled(act)) {
+            super.dismiss()
+            after()
+            return
+        }
+        closing = true
+        card.animate().cancel()
+        if (anchorLeft) {
+            card.pivotX = 0f
+            card.pivotY = card.height.toFloat()
+        } else {
+            card.pivotX = card.width / 2f
+            card.pivotY = card.height / 2f
+        }
+        card.animate()
+            .alpha(0f).scaleX(Motion.POP_SCALE).scaleY(Motion.POP_SCALE)
+            .setDuration(Motion.duration(act, Motion.HIDE_MS))
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                super.dismiss()
+                after()
+            }
+            .start()
+    }
+
+    override fun dismiss() = dismissThen({})
+
     override fun onStart() { super.onStart(); shownAt = android.os.SystemClock.uptimeMillis() }
 
     /** Keys whose DOWN reached this dialog. An UP without its DOWN (e.g. the OK press that opened the dialog) is ignored. */
@@ -212,6 +277,16 @@ class KeyDialog(private val act: BaseActivity) :
         // Act on UP. Accept an UP without its DOWN only if the press began after the dialog appeared
         // (phones that hide soft-key DOWNs); the UP of the press that OPENED the dialog is ignored.
         val up = event.action == KeyEvent.ACTION_UP && (downs.remove(code) || (shownAt > 0 && (event.downTime <= 0 || event.downTime > shownAt)))
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            val bar = findViewById<View>(R.id.softBar)
+            val label = when {
+                SoftKeys.isLeft(code) -> bar.findViewById<View>(R.id.skLeft)
+                SoftKeys.isRight(code) || code == KeyEvent.KEYCODE_BACK -> bar.findViewById<View>(R.id.skRight)
+                SoftKeys.isCenter(code) -> bar.findViewById<View>(R.id.skCenter)
+                else -> null
+            }
+            if (label != null) Motion.pressFlash(label, act)
+        }
         val inp = input
         // Long text (no list, no input box): D-pad up/down scrolls the body; the scrollbar stays visible.
         if (items.isEmpty() && inp == null &&
@@ -232,20 +307,19 @@ class KeyDialog(private val act: BaseActivity) :
         when {
             SoftKeys.isRight(code) || code == KeyEvent.KEYCODE_BACK -> { if (up) dismiss(); return true }
             SoftKeys.isLeft(code) -> {
-                if (up) { if (leftAction != null) { dismiss(); leftAction!!.invoke() } else dismiss() }
+                if (up) { if (leftAction != null) dismissThen { leftAction!!.invoke() } else dismiss() }
                 return true
             }
             SoftKeys.isCenter(code) && (onInput != null || (items.isEmpty() && centerAction != null)) -> {
                 if (up) {
                     val text = input?.text?.toString().orEmpty()
-                    dismiss()
-                    if (onInput != null) onInput!!(text) else centerAction!!.invoke()
+                    dismissThen { if (onInput != null) onInput!!(text) else centerAction!!.invoke() }
                 }
                 return true
             }
             items.isNotEmpty() && code >= KeyEvent.KEYCODE_1 && code <= KeyEvent.KEYCODE_9 -> {
                 val i = code - KeyEvent.KEYCODE_1
-                if (up && i < items.size) { dismiss(); items[i].second() }
+                if (up && i < items.size) dismissThen { items[i].second() }
                 return true
             }
         }

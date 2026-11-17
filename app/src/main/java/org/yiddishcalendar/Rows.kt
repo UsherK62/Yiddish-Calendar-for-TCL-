@@ -30,7 +30,7 @@ class PickRow(
         minimumHeight = act.dp(48f)
         isFocusable = true
         isClickable = true
-        setBackgroundResource(R.drawable.row_bg)
+        setBackgroundResource(R.drawable.row_bg_ripple)
         setPadding(act.dp(12f), act.dp(7f), act.dp(12f), act.dp(7f))
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             .also { it.setMargins(act.dp(4f), act.dp(3f), act.dp(4f), 0) }
@@ -109,7 +109,7 @@ class SettingRow(
         minimumHeight = act.dp(40f)
         isFocusable = true
         isClickable = true
-        setBackgroundResource(R.drawable.row_bg)
+        setBackgroundResource(R.drawable.row_bg_ripple)
         setPadding(act.dp(10f), act.dp(5f), act.dp(10f), act.dp(5f))
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }

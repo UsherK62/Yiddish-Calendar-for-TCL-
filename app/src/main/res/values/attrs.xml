@@ -12,6 +12,7 @@
     <attr name="ycSub" format="color" />
     <attr name="ycDim" format="color" />
     <attr name="ycFocus" format="color" />
+    <attr name="ycRipple" format="color" />
     <attr name="ycHeader" format="color" />
     <attr name="ycHeaderText" format="color" />
 </resources>

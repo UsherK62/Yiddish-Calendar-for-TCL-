@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ripple on tap. Content is still tile_bg, so the D-pad focus ring is unchanged and stays visible. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/ycRipple">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/tile_bg" />
+</ripple>

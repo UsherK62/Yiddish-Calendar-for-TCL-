@@ -17,20 +17,33 @@
         android:layout_height="17dp"
         android:orientation="horizontal" />
 
-    <!-- The month grid. Cells are NOT focusable: the activity owns the selected day and all D-pad keys. -->
-    <com.kizitonwose.calendar.view.CalendarView
-        android:id="@+id/calendar"
+    <!-- The month grid. Cells are NOT focusable: the activity owns the selected day and all D-pad keys.
+         The floating ring sits on top only while the D-pad highlight is gliding to the next day. -->
+    <FrameLayout
+        android:id="@+id/calendarHost"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:descendantFocusability="blocksDescendants"
-        android:focusable="false"
-        android:overScrollMode="never"
-        app:cv_dayViewResource="@layout/calendar_day"
-        app:cv_daySize="rectangle"
-        app:cv_orientation="horizontal"
-        app:cv_outDateStyle="endOfRow"
-        app:cv_scrollPaged="true" />
+        android:layout_weight="1">
+        <com.kizitonwose.calendar.view.CalendarView
+            android:id="@+id/calendar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:descendantFocusability="blocksDescendants"
+            android:focusable="false"
+            android:overScrollMode="never"
+            app:cv_dayViewResource="@layout/calendar_day"
+            app:cv_daySize="rectangle"
+            app:cv_orientation="vertical"
+            app:cv_outDateStyle="endOfRow"
+            app:cv_scrollPaged="true" />
+        <org.yiddishcalendar.SelectionRingView
+            android:id="@+id/selectionRing"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/ycLine" />
 

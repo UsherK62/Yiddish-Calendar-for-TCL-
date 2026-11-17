@@ -1,5 +1,6 @@
 package org.yiddishcalendar
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -27,6 +28,16 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     /** Six-row pages have shorter cells: everything one step smaller. */
     var compact = false
     var rtl = true
+    /** Selection ring, drawn in onDraw so a tap ripple cannot hide it. Cells are never focusable. */
+    var selectedRing = false
+    var ringColor = 0
+    /** 0–1 overlay used by the one-shot "Today" glow. */
+    var glowAlpha = 0f
+        private set
+    /** How many times [pulseHighlight] has been started on this view (for tests). */
+    var highlightPulses = 0
+        private set
+    private var glowAnim: ValueAnimator? = null
 
     private val density = resources.displayMetrics.density
     private val scaled = resources.displayMetrics.scaledDensity
@@ -38,7 +49,24 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private val pSmall = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = hebrewRegular; textAlign = Paint.Align.LEFT }
     private val pLabel = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = hebrewBold; textAlign = Paint.Align.LEFT }
     private val pDot = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val pRing = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val pGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val r = Rect()
+
+    /** A short single glow (fade in and out) on this cell, used when the user jumps to Today. */
+    fun pulseHighlight() {
+        highlightPulses++
+        glowAnim?.cancel()
+        if (!Motion.enabled(context)) { glowAlpha = 0f; invalidate(); return }
+        glowAnim = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
+            duration = Motion.duration(context, Motion.TODAY_PULSE_MS)
+            addUpdateListener {
+                glowAlpha = it.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
 
     private fun dp(v: Float) = v * density
     private fun sp(v: Float) = v * scaled
@@ -107,6 +135,24 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
             val rr = dp(2f)
             val cx = if (rtl) left + rr else right - rr
             canvas.drawCircle(cx, top + rr, rr, pDot)
+        }
+
+        // A soft fill glow (Today pulse), under the crisp 2dp ring.
+        if (glowAlpha > 0f && width > 0 && height > 0) {
+            val color = if (ringColor != 0) ringColor else mainColor
+            pGlow.color = color
+            pGlow.alpha = (0.40f * glowAlpha * 255).toInt().coerceIn(0, 255)
+            val radius = dp(6f)
+            canvas.drawRoundRect(0f, 0f, width.toFloat(), height.toFloat(), radius, radius, pGlow)
+        }
+
+        // Ring last, on top of the ripple and the glow, same 2dp rounded stroke the tile used to have.
+        if (selectedRing && ringColor != 0 && width > 0 && height > 0) {
+            pRing.color = ringColor
+            pRing.strokeWidth = dp(2f)
+            val half = pRing.strokeWidth / 2f
+            val radius = dp(6f)
+            canvas.drawRoundRect(half, half, width - half, height - half, radius, radius, pRing)
         }
     }
 }

@@ -58,7 +58,7 @@ class EditEventActivity : BaseActivity() {
         val titleBlock = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             isFocusable = false
-            setBackgroundResource(R.drawable.row_bg)
+            setBackgroundResource(R.drawable.row_bg_ripple)
             setPadding(dp(12f), dp(7f), dp(12f), dp(7f))
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 .also { it.setMargins(dp(4f), dp(3f), dp(4f), 0) }

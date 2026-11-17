@@ -15,6 +15,7 @@
         <item name="ycSub">#C9D1DA</item>
         <item name="ycDim">#9AA3AD</item>
         <item name="ycFocus">#FFFFFF</item>
+        <item name="ycRipple">#40FFFFFF</item>
         <item name="ycHeader">#2F6FD6</item>
         <item name="ycHeaderText">#FFFFFF</item>
         <item name="android:windowBackground">#252A31</item>
@@ -43,6 +44,7 @@
         <item name="ycSub">#4A525C</item>
         <item name="ycDim">#6F7883</item>
         <item name="ycFocus">#1F5AB5</item>
+        <item name="ycRipple">#331F5AB5</item>
         <item name="ycHeader">#2F6FD6</item>
         <item name="ycHeaderText">#FFFFFF</item>
         <item name="android:windowBackground">#F3F5F7</item>
@@ -118,7 +120,7 @@
         <item name="android:paddingEnd">10dp</item>
         <item name="android:paddingTop">6dp</item>
         <item name="android:paddingBottom">6dp</item>
-        <item name="android:background">@drawable/row_bg</item>
+        <item name="android:background">@drawable/row_bg_ripple</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
         <item name="android:gravity">center_vertical</item>

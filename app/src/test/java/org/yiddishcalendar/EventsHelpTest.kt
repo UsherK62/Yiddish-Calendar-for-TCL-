@@ -160,8 +160,9 @@ class EventsHelpTest {
             val lm = cal.layoutManager as LinearLayoutManager
             val pos = lm.findFirstVisibleItemPosition()
             val vec = lm.computeScrollVectorForPosition(pos + 1)!!
-            // next month comes from the left in the right-to-left grid, from the right otherwise
-            if (rtl) assertTrue("rtl: ${vec.x}", vec.x < 0) else assertTrue("ltr: ${vec.x}", vec.x > 0)
+            // next month is the page below, in both right-to-left and left-to-right
+            assertEquals("rtl=$rtl no sideways scroll vector", 0f, vec.x)
+            assertTrue("rtl=$rtl next month is below: ${vec.y}", vec.y > 0)
             val h0 = m.findViewById<TextView>(R.id.headerTitle).text.toString()
             press(m::dispatchKeyEvent, if (rtl) KeyEvent.KEYCODE_4 else KeyEvent.KEYCODE_6)  // the key on the "next" side
             assertNotEquals("header updates in place", h0, m.findViewById<TextView>(R.id.headerTitle).text.toString())
