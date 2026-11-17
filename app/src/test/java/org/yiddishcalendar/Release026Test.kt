@@ -74,9 +74,9 @@ class Release026Test {
         } as android.view.ViewGroup
 
     // ---- version ----
-    @Test fun versionIs026() {
-        assertEquals(11, BuildConfig.VERSION_CODE)
-        assertEquals("0.2.6", BuildConfig.VERSION_NAME)
+    @Test fun versionIs026OrLater() {
+        assertTrue(BuildConfig.VERSION_CODE >= 11)
+        assertTrue(BuildConfig.VERSION_NAME >= "0.2.6")
     }
 
     // ---- 1. RTL follows Hebrew months, then the RTL row is a manual override ----
@@ -167,7 +167,7 @@ class Release026Test {
         val a = main()
         val cv = a.findViewById<CalendarView>(R.id.calendar)
         assertEquals(RecyclerView.VERTICAL, cv.orientation)
-        assertTrue(cv.scrollPaged)
+        assertFalse("0.2.7 snaps pages itself, so the library pager is off", cv.scrollPaged)
         assertFalse("no sideways paging", cv.canScrollHorizontally(1))
         assertFalse(cv.canScrollHorizontally(-1))
         assertTrue("can page to a later month", cv.canScrollVertically(1))

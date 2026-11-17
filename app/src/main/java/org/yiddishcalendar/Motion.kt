@@ -24,7 +24,9 @@ object Motion {
     const val TODAY_PULSE_MS = 400L
     const val SOFT_PRESS_MS = 120L
     const val SOFT_PRESS_ALPHA = 0.4f
+    const val SNAP_MS = MonthSnap.DURATION_MS
     private const val TAG_FLASH_AT = 0x7f011001
+    private const val TAG_CELL_FILL = 0x7f011002
 
     /** Host tests: true/false forces motion on or off; null follows the usual rules. */
     var overrideEnabled: Boolean? = null
@@ -49,6 +51,19 @@ object Motion {
         val focus = TypedValue()
         ctx.theme.resolveAttribute(R.attr.ycFocus, focus, true)
         return focus.data and 0x00FFFFFF or 0x33000000
+    }
+
+    /**
+     * Reuse this cell's ripple when the fill colour has not changed, so bind() does not
+     * allocate a new drawable on every recyle (slow MT6739 path).
+     */
+    fun reuseCellBackground(view: View, ctx: Context, fillColor: Int, cornerPx: Float): Drawable {
+        val prev = view.getTag(TAG_CELL_FILL) as? Int
+        val existing = view.background
+        if (prev == fillColor && existing is RippleDrawable) return existing
+        val d = cellBackground(ctx, fillColor, cornerPx)
+        view.setTag(TAG_CELL_FILL, fillColor)
+        return d
     }
 
     /** Colour fill with a ripple on top. The selection ring is drawn by the view itself, so it stays visible. */

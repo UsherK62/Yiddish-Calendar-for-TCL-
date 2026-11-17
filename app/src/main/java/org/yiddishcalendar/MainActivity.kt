@@ -12,6 +12,9 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
+import androidx.recyclerview.widget.RecyclerView
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.data.MonthPageSource
@@ -20,6 +23,7 @@ import com.kizitonwose.calendar.view.MonthDayBinder
 import com.kizitonwose.calendar.view.ViewContainer
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 
 /**
  * Month grid. The activity owns ONE selected day and handles every D-pad / number key itself;
@@ -45,6 +49,11 @@ class MainActivity : BaseActivity() {
     private var seenRevision = -1
     /** True when the visible page has 6 week rows: cells are ~29dp tall, so text steps down one size. */
     private var compact = false
+    /** Finger is down on the grid: do not auto-align on a spurious IDLE from stopScroll(). */
+    private var touching = false
+    /** Rebind the settled page only after the snap has finished, so the scroll itself is not janked. */
+    private var pendingMonthNotify = false
+    private var pagerListen = false
     private val clockHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val clockTick = object : Runnable {
         override fun run() { refreshToday(); clockHandler.postDelayed(this, 60_000) }
@@ -113,7 +122,12 @@ class MainActivity : BaseActivity() {
         currentOffset = pages.offsetOf(selected)
         updateCompact()
         cv.setup(pages.startKey, pages.endKey, DayOfWeek.SUNDAY)
+        // We snap the page ourselves (short, one-month, always aligned). The library
+        // PagerSnapHelper is left off so it cannot fight a fling or an interrupted drag.
+        cv.scrollPaged = false
+        cv.itemAnimator = null
         cv.scrollToMonth(pages.keyOf(currentOffset))
+        listenForPageSettle()
         fillWeekdays()
         loadEventDots()
         updateTexts()
@@ -153,7 +167,6 @@ class MainActivity : BaseActivity() {
     private fun updateTexts() {
         val (first, len) = pages.range(currentOffset)
         val h = HeaderText.of(luach, first, len, pages.hebrew, prefs.rtlGrid)
-        setHeader(h.start, h.end)
         val title = findViewById<TextView>(R.id.headerTitle)
         val right = findViewById<TextView>(R.id.headerRight)
         // The month being viewed is the big bold text; the other calendar's months are smaller.
@@ -161,6 +174,13 @@ class MainActivity : BaseActivity() {
         title.typeface = Typeface.create(title.typeface, if (h.startIsMain) Typeface.BOLD else Typeface.NORMAL)
         right.textSize = if (h.startIsMain) 13f else 17f
         right.typeface = Typeface.create(right.typeface, if (h.startIsMain) Typeface.NORMAL else Typeface.BOLD)
+        val gregorian = if (!pages.hebrew) YearMonth.from(first) else null
+        val gregorianOnStart = when {
+            gregorian == null -> null
+            !prefs.rtlGrid -> true
+            else -> false
+        }
+        HeaderFit.apply(title, right, h, gregorian, gregorianOnStart, dp(8f).toFloat())
         findViewById<TextView>(R.id.statusTitle).apply { text = luach.dayTitle(selected); applyBidi() }
         findViewById<TextView>(R.id.statusSub).apply { text = luach.daySubtitle(selected); applyBidi() }
     }
@@ -186,19 +206,28 @@ class MainActivity : BaseActivity() {
         if (monthChanged) {
             selectionRing.hide()
             ringGliding = false
+            cv.stopScroll()
             val oldKey = pages.keyOf(currentOffset)
             val oldOffset = currentOffset
             currentOffset = newOffset
             updateCompact()
+            loadEventDots()
             // Only the grid moves: one month away slides vertically (next month comes in from below,
             // previous from above), farther jumps (year, today, go to date) switch at once. The header,
             // weekday row and the info lines are separate views and just update in place below.
-            if (kotlin.math.abs(newOffset - oldOffset) == 1) cv.smoothScrollToMonth(pages.keyOf(newOffset))
-            else cv.scrollToMonth(pages.keyOf(newOffset))
-            loadEventDots()
-            cv.notifyMonthChanged(oldKey) // clear old highlight in the cached page
+            val onePage = kotlin.math.abs(newOffset - oldOffset) == 1
+            if (onePage && Motion.enabled(this)) {
+                pendingMonthNotify = true
+                snapToOffset(newOffset)
+            } else {
+                pendingMonthNotify = false
+                cv.scrollToMonth(pages.keyOf(newOffset))
+                cv.notifyMonthChanged(oldKey)
+                cv.notifyMonthChanged(pages.keyOf(currentOffset))
+            }
+        } else {
+            cv.notifyMonthChanged(pages.keyOf(currentOffset))
         }
-        cv.notifyMonthChanged(pages.keyOf(currentOffset))
         updateTexts()
         if (glide && !monthChanged) glideSelection(from, date)
         else if (!monthChanged) selectionRing.hide()
@@ -373,22 +402,27 @@ class MainActivity : BaseActivity() {
     }
 
     /**
-     * Touch: a vertical drag moves the month grid with the finger; on release it snaps to the nearest
-     * month (or the next/previous one if the flick is fast). The header, weekday row and status lines
-     * stay put and update when the page settles (through moveTo(), the same path as keys 4/6).
-     * Sideways drags are swallowed so the grid never pages sideways. Taps still reach the day cells.
-     * D-pad and keys 4/6 keep the existing one-page vertical slide (they do not use this listener).
+     * Touch: a vertical drag moves the month grid with the finger; on release it snaps to exactly
+     * one whole month (the nearest, or the next/previous one if the flick is fast). Each gesture
+     * moves at most one month. A new swipe that starts during a settle stops that settle and then
+     * finishes cleanly on a whole month. The header, weekday row and status lines stay put and
+     * update through moveTo(), the same path as keys 4/6. Sideways drags are swallowed so the grid
+     * never pages sideways. Taps still reach the day cells. D-pad and keys 4/6 use the same short
+     * snap and do not use this listener.
      */
     private fun installSwipe() {
         val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop
         val minFling = android.view.ViewConfiguration.get(this).scaledMinimumFlingVelocity
-        cv.addOnItemTouchListener(object : androidx.recyclerview.widget.RecyclerView.SimpleOnItemTouchListener() {
+        cv.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
             var x0 = 0f; var y0 = 0f; var lastY = 0f
             var mode = 0 // 0 = undecided, 1 = vertical, 2 = sideways (ignored)
             var tracker: android.view.VelocityTracker? = null
-            override fun onInterceptTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent): Boolean {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: android.view.MotionEvent): Boolean {
                 when (e.actionMasked) {
                     android.view.MotionEvent.ACTION_DOWN -> {
+                        // Stop any running snap so a new gesture starts from the current visual place.
+                        touching = true
+                        cv.stopScroll()
                         x0 = e.x; y0 = e.y; lastY = e.y; mode = 0
                         tracker?.recycle()
                         tracker = android.view.VelocityTracker.obtain().also { it.addMovement(e) }
@@ -397,15 +431,24 @@ class MainActivity : BaseActivity() {
                         tracker?.addMovement(e)
                         if (mode == 0 && kotlin.math.hypot(e.x - x0, e.y - y0) > slop) {
                             mode = if (kotlin.math.abs(e.y - y0) > kotlin.math.abs(e.x - x0)) 1 else 2
-                            if (mode == 1) lastY = e.y
+                            if (mode == 1) {
+                                lastY = e.y
+                                rv.parent?.requestDisallowInterceptTouchEvent(true)
+                            }
                         }
                     }
-                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> { }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        if (mode == 0) {
+                            // A tap: we may have stopped a settle, so snap to a whole month after the click.
+                            touching = false
+                            rv.post { if (!touching) alignIfNeeded() }
+                        }
+                    }
                 }
                 // Intercept once the direction is known, so a clickable day cell cannot eat the drag.
                 return mode != 0
             }
-            override fun onTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent) {
+            override fun onTouchEvent(rv: RecyclerView, e: android.view.MotionEvent) {
                 tracker?.addMovement(e)
                 when (e.actionMasked) {
                     android.view.MotionEvent.ACTION_MOVE -> if (mode == 1) {
@@ -416,12 +459,16 @@ class MainActivity : BaseActivity() {
                     android.view.MotionEvent.ACTION_UP -> {
                         if (mode == 1) {
                             tracker?.computeCurrentVelocity(1000)
+                            touching = false
                             settleMonthPage(tracker?.yVelocity ?: 0f, minFling)
+                        } else {
+                            touching = false
                         }
                         recycleTracker()
                         mode = 0
                     }
                     android.view.MotionEvent.ACTION_CANCEL -> {
+                        touching = false
                         if (mode == 1) settleMonthPage(0f, minFling)
                         recycleTracker()
                         mode = 0
@@ -432,30 +479,115 @@ class MainActivity : BaseActivity() {
         })
     }
 
-    /** Snap the dragged grid to the nearest month, or to the next/previous month on a fast flick. */
+    /** Snap the dragged grid to exactly one month, at most one page from the current one. */
     private fun settleMonthPage(vy: Float, minFling: Int) {
-        val lm = cv.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager ?: return
+        val lm = cv.layoutManager as? LinearLayoutManager ?: return
         val first = lm.findFirstVisibleItemPosition()
-        if (first == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return
+        if (first == RecyclerView.NO_POSITION) return
         val child = lm.findViewByPosition(first)
-        val nearest = if (child != null && child.top < -child.height / 2) first + 1 else first
-        val flicked = when {
-            vy < -minFling -> currentOffset + 1
-            vy > minFling -> currentOffset - 1
-            else -> null
-        }
-        val target = (flicked ?: nearest).coerceIn(0, pages.lastOffset)
+        val target = MonthSnap.targetOffset(
+            current = currentOffset,
+            firstVisible = first,
+            firstTop = child?.top ?: 0,
+            pageHeight = child?.height ?: 0,
+            vy = vy,
+            minFling = minFling,
+            lastOffset = pages.lastOffset,
+        )
         if (target == currentOffset) {
-            cv.smoothScrollToMonth(pages.keyOf(currentOffset))
+            if (MonthSnap.isAligned(child?.top ?: 0)) maybeNotifySettled()
+            else snapOrJump(currentOffset)
         } else {
             moveTo(pages.addMonths(selected, target - currentOffset))
         }
+    }
+
+    /** Short decelerating snap to [offset], or an instant jump when motion is off. */
+    private fun snapOrJump(offset: Int) {
+        if (Motion.enabled(this)) {
+            pendingMonthNotify = true
+            snapToOffset(offset)
+        } else {
+            cv.scrollToMonth(pages.keyOf(offset))
+            maybeNotifySettled()
+        }
+    }
+
+    private fun snapToOffset(offset: Int) {
+        val lm = cv.layoutManager as? LinearLayoutManager ?: run {
+            cv.scrollToMonth(pages.keyOf(offset))
+            return
+        }
+        cv.stopScroll()
+        val scroller = object : LinearSmoothScroller(this) {
+            override fun getVerticalSnapPreference() = SNAP_TO_START
+            override fun getHorizontalSnapPreference() = SNAP_TO_START
+            override fun calculateTimeForDeceleration(dx: Int): Int =
+                Motion.duration(this@MainActivity, Motion.SNAP_MS).toInt().coerceAtLeast(1)
+            override fun calculateTimeForScrolling(dx: Int): Int = calculateTimeForDeceleration(dx)
+        }
+        scroller.targetPosition = offset
+        lm.startSmoothScroll(scroller)
+    }
+
+    private fun listenForPageSettle() {
+        if (pagerListen) return
+        pagerListen = true
+        cv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) alignIfNeeded()
+            }
+        })
+    }
+
+    /** After any fling, interrupted drag, or snap, the grid must sit on exactly one month. */
+    private fun alignIfNeeded() {
+        if (touching) return
+        val lm = cv.layoutManager as? LinearLayoutManager ?: return
+        val first = lm.findFirstVisibleItemPosition()
+        if (first == RecyclerView.NO_POSITION) return
+        val child = lm.findViewByPosition(first) ?: return
+        if (!MonthSnap.isAligned(child.top)) {
+            val nearest = MonthSnap.nearest(first, child.top, child.height).coerceIn(0, pages.lastOffset)
+            cv.stopScroll()
+            if (nearest != currentOffset) {
+                val dest = pages.addMonths(selected, nearest - currentOffset)
+                currentOffset = nearest
+                selected = dest
+                updateCompact()
+                loadEventDots()
+                updateTexts()
+            }
+            cv.scrollToMonth(pages.keyOf(nearest))
+        }
+        maybeNotifySettled()
+    }
+
+    private fun maybeNotifySettled() {
+        if (!pendingMonthNotify) return
+        pendingMonthNotify = false
+        cv.notifyMonthChanged(pages.keyOf(currentOffset))
     }
 
     // ---------------- Day cells ----------------
 
     inner class DayContainer(view: View) : ViewContainer(view) {
         val box: DayCellView = view.findViewById(R.id.cellBox)
+        var date: LocalDate = LocalDate.MIN
+        var inMonth = false
+        init {
+            // Listeners live on the recycled cell, so bind() does not allocate new ones while scrolling.
+            box.setOnClickListener {
+                if (date == selected && inMonth) openDay(date) else moveTo(date)
+            }
+            box.setOnLongClickListener {
+                if (!pages.contains(date)) return@setOnLongClickListener false
+                moveTo(date)
+                startActivity(Intent(this@MainActivity, EditEventActivity::class.java).putExtra(EditEventActivity.EXTRA_DATE, date.toEpochDay()))
+                true
+            }
+            box.isFocusable = false
+        }
     }
 
     inner class DayBinder : MonthDayBinder<DayContainer> {
@@ -464,6 +596,8 @@ class MainActivity : BaseActivity() {
         override fun bind(container: DayContainer, data: CalendarDay) {
             val date = data.date
             val inMonth = data.position == DayPosition.MonthDate
+            container.date = date
+            container.inMonth = inMonth
             val shabbos = date.dayOfWeek == DayOfWeek.SATURDAY
             val isToday = date == today
             val isSelected = inMonth && date == selected
@@ -473,7 +607,8 @@ class MainActivity : BaseActivity() {
             // In-month days are filled tiles; days of the next/previous month have no tile at all, so the
             // shown month stands out clearly while their numbers stay readable. The selection ring is
             // drawn by the cell itself, on top of the tap ripple.
-            v.background = Motion.cellBackground(
+            v.background = Motion.reuseCellBackground(
+                v,
                 this@MainActivity,
                 when {
                     isToday -> p.today
@@ -500,16 +635,7 @@ class MainActivity : BaseActivity() {
             v.rtl = prefs.rtlGrid
             v.contentDescription = luach.fullHebrewDate(date) + ", " + luach.dayTitle(date)
             // Touch: tap a day to select it, tap the selected day again to open it. Long-press opens
-            // Add event for that day. Never focusable, so the D-pad (handled in dispatchKeyEvent) and
-            // the single selection ring are unchanged. The Add soft key still uses the selected day.
-            v.setOnClickListener { if (date == selected && inMonth) openDay(date) else moveTo(date) }
-            v.setOnLongClickListener {
-                if (!pages.contains(date)) return@setOnLongClickListener false
-                moveTo(date)
-                startActivity(Intent(this@MainActivity, EditEventActivity::class.java).putExtra(EditEventActivity.EXTRA_DATE, date.toEpochDay()))
-                true
-            }
-            v.isFocusable = false
+            // Add event for that day. Listeners are set once in DayContainer so bind stays allocation-light.
             v.invalidate()
             if (pendingTodayPulse && date == today && isSelected && v.width > 0) {
                 pendingTodayPulse = false

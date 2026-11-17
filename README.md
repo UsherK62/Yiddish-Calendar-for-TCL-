@@ -4,7 +4,7 @@ A Hebrew calendar for Yiddish-speaking users, made for keypad flip phones such a
 
 There are no ads, and the app does not use the internet. It only asks for calendar permission, so it can read and write events.
 
-This is version 0.2.6 (package `com.yiddishcalendar.app`). It runs on Android 5.0 and up, and it targets Android 11.
+This is version 0.2.7 (package `com.yiddishcalendar.app`). It runs on Android 5.0 and up, and it targets Android 11.
 
 ## Features
 
@@ -25,7 +25,7 @@ Screens stay in portrait and are laid out for a small keypad phone, about 240×3
 
 Move with the D-pad. The left soft key is the menu: the phone may send it as the left soft key, Menu, or F1, including on TCL phones and some Kyocera and LG phones. The right soft key is Add on the month screen and Back on other screens (right soft key or F2, including TCL and Sonim XP3).
 
-A touchscreen is optional. Tap a day to select it, and tap it again to open it. Long-press a day to add an event for that day. Swipe the month grid up or down: it follows your finger and settles on a month. Taps on days, rows, and the words on the bottom bar show a short ripple. Pop-ups fade in gently. The D-pad highlight slides to the next day; jumping to Today gives that day a short glow; soft-key labels dim briefly when they are pressed or tapped. Tap the words on the bottom bar to use them like the soft keys.
+A touchscreen is optional. Tap a day to select it, and tap it again to open it. Long-press a day to add an event for that day. The Gregorian month title always includes the year (the short name, such as "Dec 2026", is used when the full name does not fit). Swipe the month grid up or down: it follows your finger and always settles on one whole month. Taps on days, rows, and the words on the bottom bar show a short ripple. Pop-ups fade in gently. The D-pad highlight slides to the next day; jumping to Today gives that day a short glow; soft-key labels dim briefly when they are pressed or tapped. Tap the words on the bottom bar to use them like the soft keys.
 
 ## Keys
 

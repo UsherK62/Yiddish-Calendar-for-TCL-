@@ -52,6 +52,7 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private val pRing = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val pGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val r = Rect()
+    private val rSmall = Rect()
 
     /** A short single glow (fade in and out) on this cell, used when the user jumps to Today. */
     fun pulseHighlight() {
@@ -71,8 +72,11 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private fun dp(v: Float) = v * density
     private fun sp(v: Float) = v * scaled
 
-    /** Ink bounds of [s] (relative to its baseline origin). */
-    private fun ink(p: Paint, s: String): Rect = Rect().also { p.getTextBounds(s, 0, s.length, it) }
+    /** Ink bounds of [s] (relative to its baseline origin). Reuses [into] so onDraw allocates nothing. */
+    private fun ink(p: Paint, s: String, into: Rect = r): Rect {
+        p.getTextBounds(s, 0, s.length, into)
+        return into
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -88,7 +92,7 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
             pLabel.textSize = size
             while (pLabel.measureText(l) > w && size > sp(5.5f)) { size -= sp(0.5f); pLabel.textSize = size }
             pLabel.color = labelColor
-            val b = ink(pLabel, l)
+            val b = ink(pLabel, l, r)
             val x = left + (w - pLabel.measureText(l)) / 2f
             val baseline = bottom - max(0, b.bottom).toFloat()
             canvas.drawText(l, x, baseline, pLabel)
@@ -98,7 +102,7 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
         // Small corner number (top, reading side = right in RTL).
         pSmall.textSize = sp(if (compact) 8f else 9f)
         pSmall.color = smallColor
-        val sb = ink(pSmall, small.ifEmpty { "0" })
+        val sb = ink(pSmall, small.ifEmpty { "0" }, rSmall)
         val sw = pSmall.measureText(small)
         val sx = if (rtl) right - sw else left
         val sBase = top - sb.top
@@ -112,8 +116,8 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
         val smallBottom = if (small.isEmpty()) top else sBase + sb.bottom + dp(1.5f)
         val smallEdge = if (small.isEmpty()) (if (rtl) right else left) else if (rtl) sx - dp(1.5f) else sx + sw + dp(1.5f)
         fun fitsHeight(b: Rect) = b.height() <= zoneBottom - top
-        var mb = ink(pMain, main)
-        while (!fitsHeight(mb) && pMain.textSize > sp(9f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main) }
+        var mb = ink(pMain, main, r)
+        while (!fitsHeight(mb) && pMain.textSize > sp(9f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main, r) }
         var inkTop = top + (zoneBottom - top - mb.height()) / 2f
         var inkLeft = left + (w - mb.width()) / 2f
         val touches = small.isNotEmpty() && inkTop < smallBottom &&
@@ -123,7 +127,7 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
                 inkTop = smallBottom + (zoneBottom - smallBottom - mb.height()) / 2f
             } else {
                 val room = if (rtl) smallEdge - left else right - smallEdge
-                while (mb.width() > room && pMain.textSize > sp(10f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main) }
+                while (mb.width() > room && pMain.textSize > sp(10f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main, r) }
                 inkTop = top + (zoneBottom - top - mb.height()) / 2f
                 inkLeft = if (rtl) left + (room - mb.width()) / 2f else smallEdge + (room - mb.width()) / 2f
             }
