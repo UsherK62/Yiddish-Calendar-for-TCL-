@@ -143,11 +143,12 @@ class SoftKeyAndLegacyTest {
         assertEquals("Settings", main().settingsLabel())
     }
 
-    @Test fun aboutMentionsLanguageEscapeAndKeyTest() {
+    @Test fun aboutLeftSoftKeyOpensKeyTestAndHasNoKeyHints() {
         val a = Robolectric.buildActivity(AboutActivity::class.java).setup().get()
         val all = texts(a.findViewById(android.R.id.content)).joinToString("\n")
-        assertTrue(all, all.contains("press 0 for English"))
-        assertTrue(all, all.contains("Key test"))
+        assertFalse(all, all.contains("press 0 for English"))
+        assertFalse(all, all.contains("press the left soft key"))
+        assertFalse(all, all.contains("Right soft key, or Menu"))
         ShadowSystemClock.advanceBy(Duration.ofMillis(50))
         press(a, KeyEvent.KEYCODE_SOFT_LEFT)
         assertEquals(KeyTestActivity::class.java.name, started(a))
@@ -166,7 +167,7 @@ class SoftKeyAndLegacyTest {
     // ---- LG Exalt (Android 6.0.1 = API 23) ----
     @Test fun minSdkCoversLgExaltAndLintHasNoNewApi() {
         assertTrue("minSdk ${ctx.applicationInfo.minSdkVersion}", ctx.applicationInfo.minSdkVersion <= 23)
-        assertEquals(12, BuildConfig.VERSION_CODE); assertEquals("0.2.7", BuildConfig.VERSION_NAME)
+        assertEquals(13, BuildConfig.VERSION_CODE); assertEquals("0.2.8", BuildConfig.VERSION_NAME)
         for (f in listOf("build/reports/lint-results-debug.xml", "../calendarlib/build/reports/lint-results-debug.xml")) {
             val x = File(f)
             if (x.exists()) assertFalse("$f has NewApi", x.readText().contains("id=\"NewApi\""))

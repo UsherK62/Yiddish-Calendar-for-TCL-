@@ -48,6 +48,7 @@ class EditEventActivity : BaseActivity() {
         }
         setHeader(getString(R.string.new_event))
         hint = findViewById(R.id.hint)
+        hint.visibility = android.view.View.GONE
         val scroll = findViewById<ScrollView>(R.id.scroll)
         scroll.isFocusable = false
         val rows = findViewById<LinearLayout>(R.id.rows)
@@ -81,7 +82,7 @@ class EditEventActivity : BaseActivity() {
             setOnFocusChangeListener { _, has ->
                 titleBlock.isActivated = has
                 if (has) {
-                    onRowFocus("Type with the keypad", getString(R.string.sk_edit))
+                    onRowFocus(getString(R.string.sk_edit))
                     FocusNav.ensureVisible(scroll, titleBlock, dp(24f))
                 }
             }
@@ -118,7 +119,7 @@ class EditEventActivity : BaseActivity() {
         val scroll = findViewById<ScrollView>(R.id.scroll)
         row.onFocus = { has ->
             if (has) {
-                onRowFocus(row.hint, getString(R.string.sk_change))
+                onRowFocus(getString(R.string.sk_change))
                 FocusNav.ensureVisible(scroll, row.view, dp(24f))
             }
         }
@@ -208,8 +209,7 @@ class EditEventActivity : BaseActivity() {
 
     override fun onBackKey() { onRightSoft() }
 
-    private fun onRowFocus(h: String, center: String) {
-        hint.text = h
+    private fun onRowFocus(center: String) {
         setSoftKeys(getString(R.string.sk_save), center, getString(R.string.sk_back))
     }
 

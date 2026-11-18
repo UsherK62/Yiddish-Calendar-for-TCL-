@@ -9,8 +9,6 @@ import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * One month-grid day, drawn directly so every piece has a fixed, measured place in a tiny
@@ -18,7 +16,8 @@ import kotlin.math.min
  * the letters, so stacked TextViews either clipped or collided.
  *  - [main]: big number of the primary calendar (Hebrew letters, or the Gregorian day).
  *  - [small]: the other calendar's number, in the top corner on the reading side.
- *  - [label]: short Yom Tov / ר״ח label at the bottom, shrunk until it fits the width.
+ *  - [label]: short Yom Tov / ר״ח label at the bottom. It is shrunk, then abbreviated if needed,
+ *    and never allowed to overlap either number.
  * Everything stays inside [inset] (default 4dp), so the 2dp selection ring never touches content.
  */
 class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
@@ -52,7 +51,33 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private val pRing = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val pGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val r = Rect()
-    private val rSmall = Rect()
+    /** Last layout used to draw the cell. Tests read the ink boxes here. */
+    var lastLayout: DayCellLayout.Result? = null
+        private set
+
+    /** Place the three pieces and return the ink boxes. Safe to call from tests without drawing. */
+    fun layoutNow(): DayCellLayout.Result {
+        val placed = DayCellLayout.place(
+            width = width,
+            height = height,
+            compact = compact,
+            rtl = rtl,
+            mainText = main,
+            smallText = small,
+            labelText = label,
+            density = density,
+            scaled = scaled,
+            pMain = pMain,
+            pSmall = pSmall,
+            pLabel = pLabel,
+            scratch = r,
+        )
+        lastLayout = placed
+        pMain.textSize = placed.mainSizePx
+        pSmall.textSize = placed.smallSizePx
+        pLabel.textSize = placed.labelSizePx
+        return placed
+    }
 
     /** A short single glow (fade in and out) on this cell, used when the user jumps to Today. */
     fun pulseHighlight() {
@@ -72,67 +97,27 @@ class DayCellView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private fun dp(v: Float) = v * density
     private fun sp(v: Float) = v * scaled
 
-    /** Ink bounds of [s] (relative to its baseline origin). Reuses [into] so onDraw allocates nothing. */
-    private fun ink(p: Paint, s: String, into: Rect = r): Rect {
-        p.getTextBounds(s, 0, s.length, into)
-        return into
-    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val inset = dp(if (compact) 3.5f else 4f)
-        val left = inset; val top = inset
-        val right = width - inset; val bottom = height - inset
-        val w = right - left
+        val placed = layoutNow()
+        val inset = placed.inset
+        val left = inset
+        val top = inset
+        val right = width - inset
 
-        // Bottom label (only when there is one), auto-shrunk to the cell width.
-        var zoneBottom = bottom
-        label?.takeIf { it.isNotEmpty() }?.let { l ->
-            var size = sp(if (compact) 8f else 9f)
-            pLabel.textSize = size
-            while (pLabel.measureText(l) > w && size > sp(5.5f)) { size -= sp(0.5f); pLabel.textSize = size }
+        placed.labelText?.let { l ->
             pLabel.color = labelColor
-            val b = ink(pLabel, l, r)
-            val x = left + (w - pLabel.measureText(l)) / 2f
-            val baseline = bottom - max(0, b.bottom).toFloat()
-            canvas.drawText(l, x, baseline, pLabel)
-            zoneBottom = baseline + b.top - dp(1.5f) // top of the label ink, minus a gap
+            canvas.drawText(l, placed.labelX, placed.labelY, pLabel)
         }
-
-        // Small corner number (top, reading side = right in RTL).
-        pSmall.textSize = sp(if (compact) 8f else 9f)
-        pSmall.color = smallColor
-        val sb = ink(pSmall, small.ifEmpty { "0" }, rSmall)
-        val sw = pSmall.measureText(small)
-        val sx = if (rtl) right - sw else left
-        val sBase = top - sb.top
-        if (small.isNotEmpty()) canvas.drawText(small, sx, sBase, pSmall)
-
-        // Main number: centred in the zone above the label. If it would touch the corner number:
-        //  A) move it just below the corner number when it still fits above the label (stays centred), else
-        //  B) put it beside the corner number on the other side, shrinking it a little if needed.
-        pMain.textSize = sp(if (compact) 13f else 15f)
-        pMain.color = mainColor
-        val smallBottom = if (small.isEmpty()) top else sBase + sb.bottom + dp(1.5f)
-        val smallEdge = if (small.isEmpty()) (if (rtl) right else left) else if (rtl) sx - dp(1.5f) else sx + sw + dp(1.5f)
-        fun fitsHeight(b: Rect) = b.height() <= zoneBottom - top
-        var mb = ink(pMain, main, r)
-        while (!fitsHeight(mb) && pMain.textSize > sp(9f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main, r) }
-        var inkTop = top + (zoneBottom - top - mb.height()) / 2f
-        var inkLeft = left + (w - mb.width()) / 2f
-        val touches = small.isNotEmpty() && inkTop < smallBottom &&
-            (if (rtl) inkLeft + mb.width() > smallEdge else inkLeft < smallEdge)
-        if (touches) {
-            if (smallBottom + mb.height() <= zoneBottom) {
-                inkTop = smallBottom + (zoneBottom - smallBottom - mb.height()) / 2f
-            } else {
-                val room = if (rtl) smallEdge - left else right - smallEdge
-                while (mb.width() > room && pMain.textSize > sp(10f)) { pMain.textSize -= sp(0.5f); mb = ink(pMain, main, r) }
-                inkTop = top + (zoneBottom - top - mb.height()) / 2f
-                inkLeft = if (rtl) left + (room - mb.width()) / 2f else smallEdge + (room - mb.width()) / 2f
-            }
+        if (placed.smallText.isNotEmpty()) {
+            pSmall.color = smallColor
+            canvas.drawText(placed.smallText, placed.smallX, placed.smallY, pSmall)
         }
-        canvas.drawText(main, inkLeft - mb.left, inkTop - mb.top, pMain)
+        if (placed.mainText.isNotEmpty()) {
+            pMain.color = mainColor
+            canvas.drawText(placed.mainText, placed.mainX, placed.mainY, pMain)
+        }
 
         if (eventDot) {
             pDot.color = dotColor

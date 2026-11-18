@@ -69,11 +69,8 @@ class AboutActivity : BaseActivity() {
                 })
             })
         }
-        para("Add event", p.sub, 11f)
-        para("Right soft key, or Menu, then Add event.")
         para("Language · שפראך", p.sub, 11f)
-        para("Settings, top row. In Settings, press 0 for English.")
-        para("Key test: press the left soft key (Keys) here.")
+        para("Settings, top row.")
         para("Credits", p.sub, 11f)
         para("KosherJava (LGPL)")
         para("Calendar by kizitonwose (MIT)")

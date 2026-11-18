@@ -11,8 +11,8 @@ android {
         minSdk = 21 // LG Exalt LTE (VN220) runs Android 6.0.1 = API 23; 21 leaves margin. java.time via desugaring.
         targetSdk = 30 // Android 11 phone; old-style runtime permissions
         vectorDrawables.useSupportLibrary = true
-        versionCode = 12
-        versionName = "0.2.7"
+        versionCode = 13
+        versionName = "0.2.8"
     }
     buildTypes {
         release {

@@ -91,7 +91,7 @@ class DayActivity : BaseActivity() {
         val list = runCatching { events.eventsOn(date) }.getOrDefault(emptyList())
         if (list.isEmpty()) {
             content.addView(AppCompatTextView(this).apply {
-                text = tr("No events.") + "\n" + tr("Press Menu, then Add event."); textSize = 13f; setTextColor(p.sub)
+                text = tr("No events."); textSize = 13f; setTextColor(p.sub)
                 setPadding(dp(14f), dp(8f), dp(14f), dp(8f))
                 isFocusable = false
                 applyBidi()

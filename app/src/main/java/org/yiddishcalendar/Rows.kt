@@ -19,7 +19,7 @@ class PickRow(
     private val act: BaseActivity,
     private val title: String,
     private val value: () -> String,
-    val hint: String = "OK to choose",
+    val hint: String = "",
     private val open: () -> Unit,
 ) {
     var onFocus: ((Boolean) -> Unit)? = null

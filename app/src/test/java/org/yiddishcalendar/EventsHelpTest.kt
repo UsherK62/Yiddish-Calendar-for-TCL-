@@ -116,8 +116,10 @@ class EventsHelpTest {
             // pop-up wraps its contents: not taller than the screen, and Back closes it
             press(d::dispatchKeyEvent, KeyEvent.KEYCODE_SOFT_RIGHT); assertFalse(d.isShowing)
         }
-        // hint under the form
-        assertEquals("OK to choose", a.findViewById<TextView>(R.id.hint).text.toString())
+        // no "OK to choose" (or any other key hint) under the form
+        val hint = a.findViewById<TextView>(R.id.hint)
+        assertEquals(android.view.View.GONE, hint.visibility)
+        assertFalse(all.any { it.contains("OK to choose") || it.contains("Type with the keypad") })
     }
 
     // ---- Help ----

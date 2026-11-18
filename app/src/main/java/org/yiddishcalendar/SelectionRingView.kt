@@ -46,21 +46,30 @@ class SelectionRingView @JvmOverloads constructor(context: Context, attrs: Attri
         invalidate()
     }
 
+    private var glideGen = 0
+
     fun glideTo(left: Int, top: Int, width: Int, height: Int, ms: Long, end: () -> Unit) {
         val lp = (layoutParams as? FrameLayout.LayoutParams) ?: FrameLayout.LayoutParams(width, height)
         lp.width = width
         lp.height = height
         layoutParams = lp
         visibility = VISIBLE
+        val gen = ++glideGen
         animate().cancel()
         animate().x(left.toFloat()).y(top.toFloat())
             .setDuration(ms)
-            .withEndAction { end() }
+            .withEndAction { if (gen == glideGen) end() }
             .start()
     }
 
-    fun hide() {
+    /** Cancel a running glide and drop its end callback, so a stale day cannot get the ring. */
+    fun cancelGlide() {
+        glideGen++
         animate().cancel()
+    }
+
+    fun hide() {
+        cancelGlide()
         visibility = GONE
     }
 }

@@ -43,6 +43,10 @@ class MainActivity : BaseActivity() {
     private lateinit var selectionRing: SelectionRingView
     private lateinit var pages: MonthPages
     private var selected: LocalDate = LocalDate.now()
+    /** Visible to tests that need to check the selected day after a key hold. */
+    internal val selectedDate: LocalDate get() = selected
+    /** True after at least one auto-repeat on the key that is currently held. */
+    private var keyHeldRepeating = false
     private var today: LocalDate = LocalDate.now()
     private var currentOffset = 0
     private var eventDays: Set<LocalDate> = emptySet()
@@ -194,7 +198,7 @@ class MainActivity : BaseActivity() {
     /** Moves the selection; switches page when the date is in another month.
      *  [glide] = D-pad day/week move in the same month: the highlight slides to the new cell.
      *  [pulseToday] = the user jumped to Today: today's cell glows once after it is on screen. */
-    private fun moveTo(date: LocalDate, glide: Boolean = false, pulseToday: Boolean = false) {
+    private fun moveTo(date: LocalDate, glide: Boolean = false, pulseToday: Boolean = false, repeating: Boolean = false) {
         if (!pages.contains(date)) {
             toast("End of calendar")
             return
@@ -215,8 +219,9 @@ class MainActivity : BaseActivity() {
             // Only the grid moves: one month away slides vertically (next month comes in from below,
             // previous from above), farther jumps (year, today, go to date) switch at once. The header,
             // weekday row and the info lines are separate views and just update in place below.
+            // While a key is repeating, jump instantly so a 220 ms snap cannot be restarted mid-way.
             val onePage = kotlin.math.abs(newOffset - oldOffset) == 1
-            if (onePage && Motion.enabled(this)) {
+            if (onePage && Motion.enabled(this) && !repeating) {
                 pendingMonthNotify = true
                 snapToOffset(newOffset)
             } else {
@@ -225,13 +230,20 @@ class MainActivity : BaseActivity() {
                 cv.notifyMonthChanged(oldKey)
                 cv.notifyMonthChanged(pages.keyOf(currentOffset))
             }
+        } else if (repeating) {
+            // Only rebind the two cells so a hold stays snappy on a slow phone.
+            refreshDays(from, date)
         } else {
             cv.notifyMonthChanged(pages.keyOf(currentOffset))
         }
         updateTexts()
-        if (glide && !monthChanged) glideSelection(from, date)
+        if (glide && !monthChanged && !repeating) glideSelection(from, date)
         else if (!monthChanged) selectionRing.hide()
         if (pulseToday) scheduleTodayPulse()
+    }
+
+    private fun refreshDays(vararg dates: LocalDate) {
+        dates.distinct().forEach { cv.notifyDateChanged(it) }
     }
 
     private var ringGliding = false
@@ -307,6 +319,8 @@ class MainActivity : BaseActivity() {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 if (SoftKeys.isCenter(code) && event.repeatCount == 0) flashSoftKey(R.id.skCenter)
                 handleGridKey(code, event.repeatCount)
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                onGridKeyUp(code)
             }
             return true
         }
@@ -319,18 +333,39 @@ class MainActivity : BaseActivity() {
         KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_STAR, KeyEvent.KEYCODE_POUND,
     ) || SoftKeys.isCenter(code)
 
+    private fun isRepeatableNav(code: Int) = code == KeyEvent.KEYCODE_DPAD_LEFT ||
+        code == KeyEvent.KEYCODE_DPAD_RIGHT || code == KeyEvent.KEYCODE_DPAD_UP ||
+        code == KeyEvent.KEYCODE_DPAD_DOWN || code == KeyEvent.KEYCODE_4 ||
+        code == KeyEvent.KEYCODE_6 || code == KeyEvent.KEYCODE_1 || code == KeyEvent.KEYCODE_3
+
+    /** After a hold, cancel any leftover glide and sit on exactly one month with the ring on the selected day. */
+    private fun onGridKeyUp(code: Int) {
+        if (!isRepeatableNav(code) || !keyHeldRepeating) return
+        keyHeldRepeating = false
+        selectionRing.hide()
+        ringGliding = false
+        cv.stopScroll()
+        pendingMonthNotify = false
+        cv.scrollToMonth(pages.keyOf(currentOffset))
+        cv.notifyMonthChanged(pages.keyOf(currentOffset))
+    }
+
     private fun handleGridKey(code: Int, repeat: Int) {
+        val repeating = repeat > 0
+        if (repeating && isRepeatableNav(code)) keyHeldRepeating = true
+        val glide = !repeating
         when (code) {
             // Right-to-left grid (default): the next day is to the LEFT, so the keys follow what is seen.
-            KeyEvent.KEYCODE_DPAD_LEFT -> moveTo(selected.plusDays(if (prefs.rtlGrid) 1 else -1), glide = true)
-            KeyEvent.KEYCODE_DPAD_RIGHT -> moveTo(selected.plusDays(if (prefs.rtlGrid) -1 else 1), glide = true)
-            KeyEvent.KEYCODE_DPAD_UP -> moveTo(selected.minusDays(7), glide = true)
-            KeyEvent.KEYCODE_DPAD_DOWN -> moveTo(selected.plusDays(7), glide = true)
+            // Only a single press glides the ring. Auto-repeat moves instantly so animations cannot stack.
+            KeyEvent.KEYCODE_DPAD_LEFT -> moveTo(selected.plusDays(if (prefs.rtlGrid) 1 else -1), glide = glide, repeating = repeating)
+            KeyEvent.KEYCODE_DPAD_RIGHT -> moveTo(selected.plusDays(if (prefs.rtlGrid) -1 else 1), glide = glide, repeating = repeating)
+            KeyEvent.KEYCODE_DPAD_UP -> moveTo(selected.minusDays(7), glide = glide, repeating = repeating)
+            KeyEvent.KEYCODE_DPAD_DOWN -> moveTo(selected.plusDays(7), glide = glide, repeating = repeating)
             // 4 is the left key, 6 the right one: same direction rule as the D-pad.
-            KeyEvent.KEYCODE_4 -> moveTo(pages.addMonths(selected, if (prefs.rtlGrid) 1 else -1))
-            KeyEvent.KEYCODE_6 -> moveTo(pages.addMonths(selected, if (prefs.rtlGrid) -1 else 1))
-            KeyEvent.KEYCODE_1 -> moveTo(pages.addYears(selected, -1))
-            KeyEvent.KEYCODE_3 -> moveTo(pages.addYears(selected, 1))
+            KeyEvent.KEYCODE_4 -> moveTo(pages.addMonths(selected, if (prefs.rtlGrid) 1 else -1), repeating = repeating)
+            KeyEvent.KEYCODE_6 -> moveTo(pages.addMonths(selected, if (prefs.rtlGrid) -1 else 1), repeating = repeating)
+            KeyEvent.KEYCODE_1 -> moveTo(pages.addYears(selected, -1), repeating = repeating)
+            KeyEvent.KEYCODE_3 -> moveTo(pages.addYears(selected, 1), repeating = repeating)
             KeyEvent.KEYCODE_0 -> if (repeat == 0) moveTo(today, pulseToday = true)
             KeyEvent.KEYCODE_STAR -> if (repeat == 0) goToDate()
             KeyEvent.KEYCODE_POUND -> if (repeat == 0) {
